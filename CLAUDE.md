@@ -11,11 +11,16 @@ Runs on a 12" touch tablet in the kitchen. Touch first, readable from a distance
 
 ## Code rules
 
-- Code comments in English, senior dev style: only where the *why* is not obvious. No narration.
+- Code comments in English, senior dev style: only where the _why_ is not obvious. No narration.
 - No em-dashes anywhere (code, comments, docs, chat). Use a normal hyphen if needed.
 - UI text is German and hardcoded. i18n comes later, do not build abstractions for it now.
-- Explicit imports on the server. Nitro 3 has no auto-imports: `defineHandler` from `nitro`,
-  `useDatabase` from `nitro/database`, `getQuery` etc. from `nitro/h3`. Shared code via `#shared/...`.
+- Explicit imports on the server, there are no auto-imports. Request helpers come from `nuxt/server`
+  (`defineEventHandler`, `getQuery`, `readBody`, `createError`), `$fetch` from `ofetch`,
+  `useDatabase` from `nitro/database`. Shared code via `#shared/...`.
+- `useRuntimeConfig` comes from `nitro/runtime-config` for now. The `nuxt/server` one returns a stub
+  in dev because Vite externalizes `nuxt/server`; fix is pending upstream. Switch back once merged.
+- pnpm: never add `nitro` or `h3` as direct dependencies (duplicate instances). If server imports
+  stop resolving, hoist via `.npmrc` `public-hoist-pattern[]=nitro` instead.
 - Formatting and linting: oxfmt / oxlint, config in `.oxfmtrc.json` and `.oxlintrc.json`.
 - Vue: `<script setup lang="ts">`, Composition API, scoped styles. Global styling lives in
   `app/assets/css/`, components only add what is specific to them.
@@ -24,8 +29,11 @@ Runs on a 12" touch tablet in the kitchen. Touch first, readable from a distance
 
 - Dates: `Temporal` via `temporal-polyfill`. No `Date` arithmetic, no moment/dayjs/date-fns.
 - Recurrence: `rrule-temporal` (RFC 5545 RRULE strings, stored as text).
-- All-day events are `PlainDate`s. Timed events are local wall-clock times in `Europe/Vienna`.
-- Persistence: Nitro `useDatabase()` (`experimental.database: true`), plain SQL, no ORM.
+- All-day events are `PlainDate`s. Timed events are local wall-clock times in `Europe/Berlin`.
+- Persistence: SQLite via Nitro `useDatabase()` (`experimental.database: true`), plain SQL, no ORM.
+  Server code gets the connection through `useDb()` in `server/utils/db.ts`, which runs pending
+  migrations from `server/database/migrations.ts` on first use (append only, `PRAGMA user_version`).
+  db0 quirk: the `sql` tagged template returns rows only for SELECT, use `prepare().get()` or `.all()` otherwise.
 - Font: Figtree (variable, self-hosted via `@fontsource-variable/figtree`), one family for everything.
 - No UI library. Base styles for buttons, inputs etc. are in `app/assets/css/components.css`.
 
