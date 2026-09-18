@@ -1,0 +1,202 @@
+/* Design tokens. Light is the default, dark follows the system setting. */
+:root {
+  color-scheme: light dark;
+
+  /* Accent: blue leaning to petrol */
+  --accent: #0b6e7a;
+  --accent-strong: #095a64;
+  --accent-soft: #d6eef0;
+  --accent-text: #ffffff;
+
+  /* Surfaces and ink */
+  --bg: #f4f7f8;
+  --surface: #ffffff;
+  --surface-muted: #eaf0f2;
+  --ink: #16262b;
+  --ink-muted: #5b6b70;
+  --ink-faint: #97a4a8;
+  --line: #d7e0e3;
+  --line-strong: #b8c5c9;
+
+  /* Feedback */
+  --danger: #c0392b;
+  --danger-soft: #f9e2df;
+
+  /* Event colors, muted so they work as chips next to each other */
+  --event-blue: #2f6fb3;
+  --event-petrol: #0b6e7a;
+  --event-plum: #7d4e9e;
+  --event-amber: #b8760f;
+  --event-coral: #c95a4d;
+  --event-moss: #4f7d3a;
+
+  /* Type */
+  --font: "Figtree Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --text-sm: 0.9375rem; /* 15px */
+  --text-md: 1.0625rem; /* 17px, base */
+  --text-lg: 1.25rem; /* 20px */
+  --text-xl: 1.625rem; /* 26px */
+  --text-2xl: 2.25rem; /* 36px */
+
+  /* Spacing and shape */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --touch: 48px;
+
+  --shadow-sm: 0 1px 2px rgb(22 38 43 / 0.08);
+  --shadow-md: 0 8px 24px rgb(22 38 43 / 0.12);
+  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #3fb0bd;
+    --accent-strong: #5ec4cf;
+    --accent-soft: #123a3f;
+    --accent-text: #08272b;
+
+    --bg: #0f1a1d;
+    --surface: #17262a;
+    --surface-muted: #1e3035;
+    --ink: #e6eeef;
+    --ink-muted: #a4b4b8;
+    --ink-faint: #6b7d82;
+    --line: #2a3d42;
+    --line-strong: #3b525a;
+
+    --danger: #ef7a6d;
+    --danger-soft: #3d1f1c;
+
+    --event-blue: #6aa2e0;
+    --event-petrol: #3fb0bd;
+    --event-plum: #b48ad6;
+    --event-amber: #e0a33b;
+    --event-coral: #ef8a7c;
+    --event-moss: #86b56f;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 8px 24px rgb(0 0 0 / 0.5);
+  }
+}
+
+/* Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: var(--font);
+  font-size: var(--text-md);
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  /* No pull-to-refresh or rubber banding on the tablet */
+  overscroll-behavior: none;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Touch: kill the tap highlight and accidental text selection on controls */
+button,
+[role="button"],
+label {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Typography */
+h1 {
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+h2 {
+  font-size: var(--text-xl);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.text-muted {
+  color: var(--ink-muted);
+}
+
+.text-sm {
+  font-size: var(--text-sm);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
