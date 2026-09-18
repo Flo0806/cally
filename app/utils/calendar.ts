@@ -1,6 +1,6 @@
 import { Temporal } from "temporal-polyfill";
 
-export const TIME_ZONE = "Europe/Vienna";
+export const TIME_ZONE = "Europe/Berlin";
 
 // Header labels, Monday first. Matches the grid order below.
 export const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -20,7 +20,7 @@ export function today(): Temporal.PlainDate {
 
 // Formatted via PlainDate: PlainYearMonth.toLocaleString rejects locales whose default calendar is not iso8601.
 export function formatMonth(month: Temporal.PlainYearMonth): string {
-  return month.toPlainDate({ day: 1 }).toLocaleString("de-AT", { month: "long", year: "numeric" });
+  return month.toPlainDate({ day: 1 }).toLocaleString("de-DE", { month: "long", year: "numeric" });
 }
 
 // Builds the visible grid for a month: whole weeks starting on Monday, padded with
