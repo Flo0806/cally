@@ -2,6 +2,9 @@
 export default defineNuxtConfig({
   compatibilityDate: "latest",
   devtools: { enabled: true },
+  nitro: {
+    experimental: { database: true },
+  },
   runtimeConfig: {
     weather: {
       latitude: "",
