@@ -1,5 +1,9 @@
 <script setup lang="ts">
-// Today's summary and quick actions land here in later steps.
+import { today } from "~/utils/calendar";
+import { useEventEditor } from "~/composables/useEventEditor";
+
+// Today's summary lands here in a later step.
+const editor = useEventEditor();
 const membersOpen = ref(false);
 const categoriesOpen = ref(false);
 </script>
@@ -11,6 +15,7 @@ const categoriesOpen = ref(false);
     <div class="actions">
       <button class="btn" @click="categoriesOpen = true">Kategorien</button>
       <button class="btn" @click="membersOpen = true">Familie</button>
+      <button class="btn btn-primary" @click="editor.openNew(today().toString())">+ Termin</button>
     </div>
 
     <LookupDialog v-model="membersOpen" kind="members" />

@@ -3,39 +3,76 @@ import type { Occurrence } from "#shared/types";
 import { dateOf } from "#shared/dates";
 import { formatLongDate, formatShortDate, formatTime } from "~/utils/calendar";
 import { useEventColor } from "~/composables/useEventColor";
+import { useEventEditor } from "~/composables/useEventEditor";
 
 const open = defineModel<boolean>({ required: true });
 const props = defineProps<{ date: string; occurrences: Occurrence[] }>();
 
 const colorOf = useEventColor();
+const editor = useEventEditor();
 const title = computed(() => (props.date ? formatLongDate(props.date) : ""));
 
-function when(occurrence: Occurrence): string {
+// Two lines for the time column: the main value and a smaller qualifier
+function when(occurrence: Occurrence): { main: string; sub: string } {
   const startDay = dateOf(occurrence.start);
   const endDay = dateOf(occurrence.end);
-  if (startDay !== endDay) return `${formatShortDate(startDay)} – ${formatShortDate(endDay)}`;
-  if (occurrence.allDay) return "Ganztägig";
-  return `${formatTime(occurrence.start)} – ${formatTime(occurrence.end)}`;
+  if (startDay !== endDay) {
+    return {
+      main: "Ganztägig",
+      sub: `${formatShortDate(startDay)} bis ${formatShortDate(endDay)}`,
+    };
+  }
+  if (occurrence.allDay) return { main: "Ganztägig", sub: "" };
+  return { main: formatTime(occurrence.start), sub: `bis ${formatTime(occurrence.end)}` };
+}
+
+function colorVar(occurrence: Occurrence): string {
+  const color = colorOf(occurrence);
+  return color ? `var(--event-${color})` : "var(--accent)";
 }
 </script>
 
 <template>
-  <AppDialog v-model="open" :title="title" width="560px">
+  <AppDialog v-model="open" :title="title" width="600px">
     <ul v-if="occurrences.length" class="list">
-      <li v-for="occurrence in occurrences" :key="occurrence.key" class="row">
-        <span
-          class="dot"
-          :style="{
-            background: colorOf(occurrence)
-              ? `var(--event-${colorOf(occurrence)})`
-              : 'var(--accent)',
-          }"
-        />
-        <span class="when tabular">{{ when(occurrence) }}</span>
-        <span class="row-title">{{ occurrence.title }}</span>
+      <li v-for="occurrence in occurrences" :key="occurrence.key">
+        <button
+          class="row"
+          :style="{ '--row-color': colorVar(occurrence) }"
+          type="button"
+          @click="editor.openEdit(occurrence.eventId, occurrence.start)"
+        >
+          <span class="when">
+            <span class="when-main tabular">{{ when(occurrence).main }}</span>
+            <span v-if="when(occurrence).sub" class="when-sub tabular">{{
+              when(occurrence).sub
+            }}</span>
+          </span>
+          <span class="row-title">{{ occurrence.title }}</span>
+          <svg
+            v-if="occurrence.recurring"
+            class="repeat"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-label="Wiederkehrend"
+          >
+            <path d="M17 2l4 4-4 4" />
+            <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+            <path d="M7 22l-4-4 4-4" />
+            <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+          </svg>
+        </button>
       </li>
     </ul>
-    <p v-else class="text-muted">Keine Termine an diesem Tag.</p>
+    <p v-else class="empty text-muted">Noch nichts geplant.</p>
+
+    <template #actions>
+      <button class="btn btn-primary" type="button" @click="editor.openNew(date)">+ Termin</button>
+    </template>
   </AppDialog>
 </template>
 
@@ -43,40 +80,70 @@ function when(occurrence: Occurrence): string {
 .list {
   display: flex;
   flex-direction: column;
+  gap: var(--space-2);
 }
 
 .row {
+  --row-color: var(--accent);
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  min-height: 56px;
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--line);
+  gap: var(--space-4);
+  width: 100%;
+  height: 64px;
+  padding: 0 var(--space-4) 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--row-color) 10%, var(--surface));
+  box-shadow: inset 4px 0 0 var(--row-color);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    transform 80ms ease;
 }
 
-.row:last-child {
-  border-bottom: 0;
-}
-
-.dot {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
+.row:active {
+  background: color-mix(in srgb, var(--row-color) 20%, var(--surface));
+  transform: scale(0.99);
 }
 
 .when {
+  display: flex;
+  flex-direction: column;
   flex: none;
-  min-width: 118px;
+  width: 96px;
+  line-height: 1.2;
+}
+
+.when-main {
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+.when-sub {
   font-size: var(--text-sm);
-  font-weight: 600;
   color: var(--ink-muted);
 }
 
 .row-title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-lg);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.repeat {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--ink-faint);
+}
+
+.empty {
+  padding: var(--space-4) 0;
 }
 </style>

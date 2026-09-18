@@ -262,3 +262,36 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
 }
+
+/* Choice chips, for picking one or several items by tapping */
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.choice[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.choice-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}

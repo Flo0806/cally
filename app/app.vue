@@ -16,6 +16,7 @@ await Promise.all([useLookups("members").load(), useLookups("categories").load()
     <main class="main">
       <CalendarMonth v-model:month="month" />
     </main>
+    <EventDialog />
   </div>
 </template>
 

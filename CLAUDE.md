@@ -39,6 +39,8 @@ Runs on a 12" touch tablet in the kitchen. Touch first, readable from a distance
   db0 quirk: the `sql` tagged template returns rows only for SELECT, use `prepare().get()` or `.all()` otherwise.
 - Font: Figtree (variable, self-hosted in `public/fonts/`, preloaded in `nuxt.config.ts`), one family for everything.
 - No UI library. Base styles for buttons, inputs etc. are in `app/assets/css/components.css`.
+- No Pinia. App wide state is a composable over `useState` with plain functions as actions
+  (see `useLookups`). Decided 2026-09-18, revisit only if cross-entity updates get messy.
 
 ## Design
 
