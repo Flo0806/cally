@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // Today's summary and quick actions land here in later steps.
 const membersOpen = ref(false);
+const categoriesOpen = ref(false);
 </script>
 
 <template>
@@ -8,10 +9,12 @@ const membersOpen = ref(false);
     <h1 class="brand">cally</h1>
     <HeaderWeather />
     <div class="actions">
+      <button class="btn" @click="categoriesOpen = true">Kategorien</button>
       <button class="btn" @click="membersOpen = true">Familie</button>
     </div>
 
     <LookupDialog v-model="membersOpen" kind="members" />
+    <LookupDialog v-model="categoriesOpen" kind="categories" />
   </header>
 </template>
 
@@ -32,6 +35,8 @@ const membersOpen = ref(false);
 }
 
 .actions {
+  display: flex;
+  gap: var(--space-2);
   margin-left: auto;
 }
 </style>

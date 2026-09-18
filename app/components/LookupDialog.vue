@@ -34,6 +34,8 @@ const formError = ref("");
 const confirmDelete = ref(false);
 const busy = ref(false);
 const nameInput = useTemplateRef<HTMLInputElement>("nameInput");
+// Unique per instance: the submit button in the footer slot targets the form by id
+const formId = useId();
 
 const editing = computed(() => selectedId.value !== null);
 
@@ -139,7 +141,7 @@ async function destroy() {
       <li v-if="!items.length" class="empty text-muted">{{ labels.empty }}</li>
     </ul>
 
-    <form id="lookup-form" class="form" @submit.prevent="save">
+    <form :id="formId" class="form" @submit.prevent="save">
       <div class="form-head">
         <h3>{{ editing ? "Bearbeiten" : "Neu" }}</h3>
         <button v-if="editing" class="btn btn-ghost" type="button" @click="reset()">
@@ -148,9 +150,9 @@ async function destroy() {
       </div>
 
       <div class="field">
-        <label class="field-label" for="lookup-name">Name</label>
+        <label class="field-label" :for="`${formId}-name`">Name</label>
         <input
-          id="lookup-name"
+          :id="`${formId}-name`"
           ref="nameInput"
           v-model="form.name"
           class="input"
@@ -191,7 +193,7 @@ async function destroy() {
       >
         {{ confirmDelete ? "Wirklich löschen?" : "Löschen" }}
       </button>
-      <button class="btn btn-primary" type="submit" form="lookup-form" :disabled="busy">
+      <button class="btn btn-primary" type="submit" :form="formId" :disabled="busy">
         {{ editing ? "Speichern" : "Anlegen" }}
       </button>
     </template>
