@@ -23,7 +23,10 @@ Runs on a 12" touch tablet in the kitchen. Touch first, readable from a distance
   stop resolving, hoist via `.npmrc` `public-hoist-pattern[]=nitro` instead.
 - Formatting and linting: oxfmt / oxlint, config in `.oxfmtrc.json` and `.oxlintrc.json`.
 - Vue: `<script setup lang="ts">`, Composition API, scoped styles. Global styling lives in
-  `app/assets/css/`, components only add what is specific to them.
+  `app/assets/css/`, components only add what is specific to them. Data and measuring logic goes
+  into `app/composables/`, components stay UI.
+- Call Nuxt composables (`useState`, `useFetch`, `useApi` ...) before the first `await` in setup
+  and in composables. After an `await` the Nuxt instance context is gone on the server.
 
 ## Stack decisions
 

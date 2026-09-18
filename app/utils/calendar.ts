@@ -18,6 +18,25 @@ export function today(): Temporal.PlainDate {
 }
 
 // Formatted via PlainDate: PlainYearMonth.toLocaleString rejects locales whose default calendar is not iso8601.
+export function formatTime(dateTime: string): string {
+  return Temporal.PlainDateTime.from(dateTime).toPlainTime().toString({ smallestUnit: "minute" });
+}
+
+export function formatLongDate(date: string): string {
+  return Temporal.PlainDate.from(date).toLocaleString("de-DE", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+}
+
+export function formatShortDate(date: string): string {
+  return Temporal.PlainDate.from(date).toLocaleString("de-DE", {
+    day: "numeric",
+    month: "numeric",
+  });
+}
+
 export function formatMonth(month: Temporal.PlainYearMonth): string {
   return month.toPlainDate({ day: 1 }).toLocaleString("de-DE", { month: "long", year: "numeric" });
 }
