@@ -2,6 +2,12 @@
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
+  runtimeConfig: {
+    weather: {
+      latitude: "",
+      longitude: "",
+    },
+  },
   css: ["@fontsource-variable/figtree", "~/assets/css/main.css", "~/assets/css/components.css"],
   app: {
     head: {

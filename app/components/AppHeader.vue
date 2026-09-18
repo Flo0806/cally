@@ -1,10 +1,11 @@
 <script setup lang="ts">
-// Weather, today's summary and quick actions land here in later steps.
+// Today's summary and quick actions land here in later steps.
 </script>
 
 <template>
   <header class="header">
     <h1 class="brand">cally</h1>
+    <HeaderWeather />
   </header>
 </template>
 
