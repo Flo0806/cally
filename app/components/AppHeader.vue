@@ -11,13 +11,7 @@ const membersOpen = ref(false);
       <button class="btn" @click="membersOpen = true">Familie</button>
     </div>
 
-    <AppDialog v-model="membersOpen" title="Familie" description="Wer gehört dazu?">
-      <p class="text-muted">Mitglieder kommen im nächsten Schritt.</p>
-      <template #actions>
-        <button class="btn btn-ghost" @click="membersOpen = false">Schließen</button>
-        <button class="btn btn-primary" disabled>Speichern</button>
-      </template>
-    </AppDialog>
+    <LookupDialog v-model="membersOpen" kind="members" />
   </header>
 </template>
 

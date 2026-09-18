@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Temporal } from "temporal-polyfill";
-import type { Weather } from "#shared/types";
 import { WEEKDAY_LABELS } from "~/utils/calendar";
 import { weatherInfo } from "~/utils/weather";
+import { useApi } from "~/utils/api";
 
 const REFRESH_MS = 15 * 60 * 1000;
 
-const { data, error, refresh } = await useFetch<Weather>("/api/weather");
+const { data, error, refresh } = await useApi("/api/weather");
 
 // The tablet stays on for days, so keep the forecast moving without a reload.
 let timer: ReturnType<typeof setInterval> | undefined;
