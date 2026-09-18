@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@lucide/vue':
+        specifier: ^1.47.0
+        version: 1.47.0(vue@3.5.42)
       nuxt:
         specifier: npm:nuxt-nightly@5x
         version: nuxt-nightly@5.0.0-29827390.1d6daef9(@devframes/agentic@1.0.0)(@devframes/hub-ui@1.0.0(@devframes/hub@1.0.0(@devframes/agentic@1.0.0)(crossws@0.4.12(srvx@1.0.5))(devframe@1.0.0)(ocache@0.3.0))(@devframes/json-render@1.0.0(@devframes/hub@1.0.0(@devframes/agentic@1.0.0)(crossws@0.4.12(srvx@1.0.5))(devframe@1.0.0)(ocache@0.3.0))(devframe@1.0.0))(devframe@1.0.0))(@devframes/json-render@1.0.0(@devframes/hub@1.0.0(@devframes/agentic@1.0.0)(crossws@0.4.12(srvx@1.0.5))(devframe@1.0.0)(ocache@0.3.0))(devframe@1.0.0))(@oxc-project/types@0.150.0)(@vitejs/devtools@0.7.5)(@vue/compiler-sfc@3.5.42)(acorn@8.18.0)(cac@7.0.0)(confbox@0.3.1)(crossws@0.4.12(srvx@1.0.5))(db0@0.4.1)(dotenv@17.4.2)(giget@3.3.1)(jiti@2.7.0)(lightningcss@1.33.0)(magicast@0.5.5)(mlly@1.8.2)(nuxt-nightly@5.0.0-29827390.1d6daef9)(ocache@0.3.0)(rolldown@1.2.9)(srvx@1.0.5)(vite@8.3.0)
@@ -218,6 +221,11 @@ packages:
     resolution: {integrity: sha512-cXAXn7h3QaylefQgh85AEGPuVq4C8SJ3k9JqigWLJhaBSozF1Fmsrm43DP16RmkqNiVgj5pBRdmB48lEO5qlow==}
     peerDependencies:
       zod: ^4.0.0
+
+  '@lucide/vue@1.47.0':
+    resolution: {integrity: sha512-S0/UX9zra4Z8xmqrA1MH5GiSKA8daAPFwkmORt/u+gUHAkYZoeOcr+DH3scZeyE9bdLWScGK+MJoDYi8rIU5Jg==}
+    peerDependencies:
+      vue: '>=3.0.1'
 
   '@modelcontextprotocol/client@2.0.0':
     resolution: {integrity: sha512-8f1OghQ2rjzIOfqgUCP+8GiUWqRs89njoWLNqAe8kWmDePv3s1fZXseej+QXemssEuuOvLLmLO/kqM3IQHtISw==}
@@ -1763,6 +1771,10 @@ snapshots:
   '@json-render/core@0.20.0(zod@4.6.5)':
     dependencies:
       zod: 4.6.5
+
+  '@lucide/vue@1.47.0(vue@3.5.42)':
+    dependencies:
+      vue: 3.5.42
 
   '@modelcontextprotocol/client@2.0.0':
     dependencies:

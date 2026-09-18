@@ -1,11 +1,19 @@
 <script setup lang="ts">
+import { X } from "@lucide/vue";
+
 // Native <dialog>: showModal() brings focus trap, escape key, top layer and inert background.
 // What is left is syncing open state with v-model and the backdrop click.
 const open = defineModel<boolean>({ required: true });
 
-withDefaults(defineProps<{ title: string; description?: string; width?: string }>(), {
-  width: "520px",
-});
+withDefaults(
+  defineProps<{
+    title: string;
+    description?: string;
+    width?: string;
+    placement?: "center" | "right";
+  }>(),
+  { width: "520px", placement: "center" },
+);
 
 const dialog = useTemplateRef<HTMLDialogElement>("dialog");
 
@@ -43,6 +51,7 @@ function onBackdrop(event: MouseEvent) {
   <dialog
     ref="dialog"
     class="dialog"
+    :class="placement"
     :style="{ '--dialog-width': width }"
     closedby="any"
     @close="syncClosed"
@@ -56,16 +65,7 @@ function onBackdrop(event: MouseEvent) {
           <p v-if="description" class="description">{{ description }}</p>
         </div>
         <button class="btn btn-ghost btn-icon" aria-label="Schließen" @click="open = false">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            aria-hidden="true"
-          >
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
+          <X :size="22" />
         </button>
       </header>
 
@@ -118,6 +118,34 @@ function onBackdrop(event: MouseEvent) {
   }
 }
 
+/* Drawer: full height on the right edge, slides in */
+.dialog.right {
+  margin: 0 0 0 auto;
+  height: 100dvh;
+  max-height: 100dvh;
+  border-radius: 0;
+}
+
+.dialog.right[open] {
+  animation: drawer-in 200ms ease-out;
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+}
+
+.dialog.right .panel {
+  height: 100dvh;
+  max-height: 100dvh;
+}
+
+.dialog.right .body {
+  flex: 1;
+}
+
 .panel {
   display: flex;
   flex-direction: column;
@@ -145,11 +173,6 @@ function onBackdrop(event: MouseEvent) {
   margin-top: 2px;
   font-size: var(--text-sm);
   color: var(--ink-muted);
-}
-
-.head svg {
-  width: 22px;
-  height: 22px;
 }
 
 .body {

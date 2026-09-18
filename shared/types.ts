@@ -40,6 +40,16 @@ export interface Occurrence {
   recurring: boolean;
 }
 
+export interface Todo {
+  id: string;
+  title: string;
+  done: boolean;
+  position: number;
+  memberId: string | null;
+  createdAt: string;
+  doneAt: string | null;
+}
+
 export interface WeatherDay {
   date: string;
   code: number;

@@ -80,3 +80,25 @@ export const rangeQuery = v.pipe(
     ["to"],
   ),
 );
+
+export const todoInput = v.object({
+  title: v.pipe(
+    v.string("Text fehlt"),
+    v.trim(),
+    v.minLength(1, "Text darf nicht leer sein"),
+    v.maxLength(200, "Text ist zu lang (max. 200 Zeichen)"),
+  ),
+  memberId: v.optional(v.nullable(id), null),
+});
+
+export const todoPatch = v.partial(
+  v.object({
+    title: todoInput.entries.title,
+    memberId: v.nullable(id),
+    done: v.boolean(),
+    position: v.pipe(v.number(), v.integer(), v.minValue(0)),
+  }),
+);
+
+export type TodoInput = v.InferOutput<typeof todoInput>;
+export type TodoPatch = v.InferOutput<typeof todoPatch>;

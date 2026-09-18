@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { today } from "~/utils/calendar";
 import { useLookups } from "~/composables/useLookups";
+import { useTodos } from "~/composables/useTodos";
 
 // shallowRef: Temporal objects carry internal slots and must not be wrapped in a reactive proxy.
 const month = shallowRef(today().toPlainYearMonth());
 
-// Members and categories drive event colors everywhere, so load them once before the first render
-await Promise.all([useLookups("members").load(), useLookups("categories").load()]);
+// Members and categories drive event colors everywhere, todos feed the header count
+await Promise.all([
+  useLookups("members").load(),
+  useLookups("categories").load(),
+  useTodos().load(),
+]);
 </script>
 
 <template>
