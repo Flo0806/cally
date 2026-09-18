@@ -12,6 +12,34 @@ export interface Lookup {
 export type Member = Lookup;
 export type Category = Lookup;
 
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  notes: string;
+  allDay: boolean;
+  start: string;
+  end: string;
+  rrule: string | null;
+  exdates: string[];
+  categoryId: string | null;
+  memberIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// One resolved instance of an event, what the calendar renders
+export interface Occurrence {
+  key: string;
+  eventId: string;
+  title: string;
+  allDay: boolean;
+  start: string;
+  end: string;
+  categoryId: string | null;
+  memberIds: string[];
+  recurring: boolean;
+}
+
 export interface WeatherDay {
   date: string;
   code: number;

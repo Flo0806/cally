@@ -1,12 +1,12 @@
-import { createError, readBody } from "nuxt/server";
+import { createError, getQuery, readBody } from "nuxt/server";
 import type { RequestEvent } from "nuxt/server";
 import * as v from "valibot";
 
-export async function readValidatedBody<TSchema extends v.GenericSchema>(
-  event: RequestEvent,
+function validate<TSchema extends v.GenericSchema>(
   schema: TSchema,
-): Promise<v.InferOutput<TSchema>> {
-  const result = v.safeParse(schema, await readBody(event));
+  input: unknown,
+): v.InferOutput<TSchema> {
+  const result = v.safeParse(schema, input);
   if (result.success) return result.output;
   throw createError({
     statusCode: 400,
@@ -18,6 +18,20 @@ export async function readValidatedBody<TSchema extends v.GenericSchema>(
       })),
     },
   });
+}
+
+export async function readValidatedBody<TSchema extends v.GenericSchema>(
+  event: RequestEvent,
+  schema: TSchema,
+): Promise<v.InferOutput<TSchema>> {
+  return validate(schema, await readBody(event));
+}
+
+export function getValidatedQuery<TSchema extends v.GenericSchema>(
+  event: RequestEvent,
+  schema: TSchema,
+): v.InferOutput<TSchema> {
+  return validate(schema, getQuery(event));
 }
 
 export function requireParam(event: RequestEvent, name: string): string {

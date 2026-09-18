@@ -1,6 +1,5 @@
 import { Temporal } from "temporal-polyfill";
-
-export const TIME_ZONE = "Europe/Berlin";
+import { TIME_ZONE } from "#shared/dates";
 
 // Header labels, Monday first. Matches the grid order below.
 export const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
