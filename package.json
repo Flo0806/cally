@@ -10,7 +10,10 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@fontsource-variable/figtree": "^5.3.0",
     "nuxt": "npm:nuxt-nightly@5x",
+    "rrule-temporal": "^2.2.5",
+    "temporal-polyfill": "^1.0.5",
     "vue": "^3.5.42",
     "vue-router": "^5.3.1"
   }

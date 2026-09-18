@@ -1,0 +1,55 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "ignorePatterns": ["dist", "coverage", "claude-data", "**/dist"],
+  "overrides": [
+    {
+      "files": ["app/**/*.vue", "app/**/*.ts"],
+      "excludeFiles": ["app/utils/api.ts"],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "$fetch",
+            "message": "Use api() from app/utils/api.ts - it ends the session on a 401, a bare $fetch does not."
+          },
+          {
+            "name": "useFetch",
+            "message": "Use useApi() from app/utils/api.ts - it ends the session on a 401, a bare useFetch does not."
+          },
+          {
+            "name": "useLazyFetch",
+            "message": "Use useApi(..., { lazy: true }) - it ends the session on a 401, a bare useLazyFetch does not."
+          }
+        ],
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "ofetch",
+                "message": "Use api() / useApi() from app/utils/api.ts. Importing ofetch directly is the one way around the session handling."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["server/**/*.ts", "shared/**/*.ts"],
+      "excludeFiles": ["server/utils/mail.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "nodemailer",
+                "message": "Send through sendMail() in server/utils/mail.ts. It is the one place that diverts every mail to NUXT_MAIL_DEV_TO in development - a second transport would not."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}
