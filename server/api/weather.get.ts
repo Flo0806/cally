@@ -1,4 +1,6 @@
-import { createError, defineEventHandler, useRuntimeConfig } from "nuxt/server";
+import { createError, defineEventHandler } from "nuxt/server";
+// TODO: switch back to `nuxt/server` once nuxt/nuxt#36275 follow-up (noExternal fix) ships
+import { useRuntimeConfig } from "nitro/runtime-config";
 import { $fetch } from "ofetch";
 import type { Weather } from "#shared/types";
 
@@ -21,7 +23,6 @@ let cache: { at: number; data: Weather } | null = null;
 
 export default defineEventHandler(async (): Promise<Weather> => {
   if (cache && Date.now() - cache.at < CACHE_TTL_MS) return cache.data;
-
   const { latitude, longitude } = useRuntimeConfig().weather;
   if (!latitude || !longitude) {
     throw createError({ statusCode: 503, message: "Wetter ist nicht konfiguriert" });
