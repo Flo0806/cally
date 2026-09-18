@@ -1,3 +1,12 @@
+/* Self-hosted so the file has a stable URL for the preload in nuxt.config. Latin covers German. */
+@font-face {
+  font-family: "Figtree";
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url("/fonts/figtree-latin.woff2") format("woff2-variations");
+}
+
 /* Design tokens. Light is the default, dark follows the system setting. */
 :root {
   color-scheme: light dark;
@@ -31,7 +40,7 @@
   --event-moss: #4f7d3a;
 
   /* Type */
-  --font: "Figtree Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --text-sm: 0.9375rem; /* 15px */
   --text-md: 1.0625rem; /* 17px, base */
   --text-lg: 1.25rem; /* 20px */

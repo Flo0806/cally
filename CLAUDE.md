@@ -34,7 +34,7 @@ Runs on a 12" touch tablet in the kitchen. Touch first, readable from a distance
   Server code gets the connection through `useDb()` in `server/utils/db.ts`, which runs pending
   migrations from `server/database/migrations.ts` on first use (append only, `PRAGMA user_version`).
   db0 quirk: the `sql` tagged template returns rows only for SELECT, use `prepare().get()` or `.all()` otherwise.
-- Font: Figtree (variable, self-hosted via `@fontsource-variable/figtree`), one family for everything.
+- Font: Figtree (variable, self-hosted in `public/fonts/`, preloaded in `nuxt.config.ts`), one family for everything.
 - No UI library. Base styles for buttons, inputs etc. are in `app/assets/css/components.css`.
 
 ## Design
