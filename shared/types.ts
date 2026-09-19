@@ -57,6 +57,9 @@ export interface NewsItem {
   summary: string;
   source: string;
   published: string;
+  image: string | null;
+  // Outlet site, for the favicon
+  sourceUrl: string;
 }
 
 export interface NewsCategory {

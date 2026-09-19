@@ -65,4 +65,16 @@ export const migrations: Migration[] = [
       )`,
     ],
   },
+  {
+    version: 2,
+    name: "news-reads",
+    sql: [
+      `CREATE TABLE news_reads (
+        member_id TEXT NOT NULL REFERENCES members (id) ON DELETE CASCADE,
+        item_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (member_id, item_id)
+      )`,
+    ],
+  },
 ];

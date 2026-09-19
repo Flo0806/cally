@@ -59,6 +59,33 @@ function toInstant(value: string): string | null {
   return Number.isNaN(ms) ? null : Temporal.Instant.fromEpochMilliseconds(ms).toString();
 }
 
+const IMAGE_URL_RE = /^https?:\/\/.+\.(jpe?g|png|webp|gif|avif)(\?.*)?$/i;
+
+function isImage(node: Raw | undefined): boolean {
+  if (!node) return false;
+  const type = String(node["@_type"] ?? node["@_medium"] ?? "");
+  const url = String(node["@_url"] ?? "");
+  return type.startsWith("image") || IMAGE_URL_RE.test(url);
+}
+
+// Enclosure, then Media RSS, then the first <img> in the HTML body. Half the feeds have one.
+function imageOf(entry: Raw): string | null {
+  const candidates = ([] as unknown[]).concat(
+    entry.enclosure ?? [],
+    entry["media:content"] ?? [],
+    entry["media:thumbnail"] ?? [],
+  ) as Raw[];
+  const media = candidates.find(
+    (node) => node?.["@_url"] && (isImage(node) || node === entry["media:thumbnail"]),
+  );
+  if (media) return String(media["@_url"]);
+  const html = text(
+    entry["content:encoded"] ?? entry.description ?? entry.summary ?? entry.content ?? "",
+  );
+  const src = /<img[^>]+src=["']([^"']+)["']/i.exec(html)?.[1];
+  return src && /^https?:\/\//.test(src) ? src : null;
+}
+
 function atomLink(entry: Raw): string {
   const links = Array.isArray(entry.link) ? entry.link : [entry.link];
   const alternate = links.find(
@@ -67,10 +94,19 @@ function atomLink(entry: Raw): string {
   return text(alternate ?? links[0]);
 }
 
+function originOf(url: string): string {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return "";
+  }
+}
+
 function parseFeed(xml: string, source: NewsSource): NewsItem[] {
   const doc = parser.parse(xml) as Raw;
   const channel = (doc.rss as Raw)?.channel as Raw | undefined;
   const feed = doc.feed as Raw | undefined;
+  const feedSite = originOf(text(channel?.link ?? (feed ? atomLink(feed) : "")) || source.url);
 
   const entries = channel
     ? ([] as Raw[]).concat((channel.item as Raw[]) ?? [])
@@ -99,6 +135,8 @@ function parseFeed(xml: string, source: NewsSource): NewsItem[] {
       summary: clip(plain(text(entry.description ?? entry.summary ?? entry.content ?? ""))),
       source: outlet || source.name,
       published,
+      image: imageOf(entry),
+      sourceUrl: originOf(String((entry.source as Raw)?.["@_url"] ?? "")) || feedSite,
     });
   }
   return items;
