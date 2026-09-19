@@ -46,6 +46,14 @@ export const migrations: Migration[] = [
         PRIMARY KEY (event_id, member_id)
       )`,
       `CREATE INDEX event_members_member ON event_members (member_id)`,
+      // Hearts on news items are a taste signal per member, category counts rank the news page
+      `CREATE TABLE news_hearts (
+        member_id TEXT NOT NULL REFERENCES members (id) ON DELETE CASCADE,
+        item_id TEXT NOT NULL,
+        category_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (member_id, item_id)
+      )`,
       `CREATE TABLE todos (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,

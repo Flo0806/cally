@@ -50,6 +50,39 @@ export interface Todo {
   doneAt: string | null;
 }
 
+export interface NewsItem {
+  id: string;
+  title: string;
+  link: string;
+  summary: string;
+  source: string;
+  published: string;
+}
+
+export interface NewsCategory {
+  id: string;
+  label: string;
+  items: NewsItem[];
+}
+
+export interface NewsHeart {
+  itemId: string;
+  categoryId: string;
+  createdAt: string;
+}
+
+export interface News {
+  fetchedAt: string;
+  // Hash over the item ids, changes only when the content changes
+  digest: string;
+  categories: NewsCategory[];
+}
+
+export interface NewsStatus {
+  fetchedAt: string;
+  digest: string;
+}
+
 export interface WeatherDay {
   date: string;
   code: number;

@@ -102,3 +102,10 @@ export const todoPatch = v.partial(
 
 export type TodoInput = v.InferOutput<typeof todoInput>;
 export type TodoPatch = v.InferOutput<typeof todoPatch>;
+
+export const heartInput = v.object({
+  memberId: id,
+  categoryId: v.pipe(v.string(), v.minLength(1)),
+});
+
+export type HeartInput = v.InferOutput<typeof heartInput>;

@@ -3,7 +3,10 @@ export default defineNuxtConfig({
   compatibilityDate: "latest",
   devtools: { enabled: true },
   nitro: {
-    experimental: { database: true },
+    experimental: { database: true, tasks: true },
+    scheduledTasks: {
+      "*/30 * * * *": "news:pull",
+    },
   },
   runtimeConfig: {
     weather: {

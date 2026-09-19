@@ -62,3 +62,17 @@ export function monthGrid(month: Temporal.PlainYearMonth): GridDay[] {
     };
   });
 }
+
+// "vor 5 Min", "vor 3 Std", "gestern", else a short date
+export function formatRelative(iso: string): string {
+  const then = Temporal.Instant.from(iso);
+  const minutes = Math.round(Temporal.Now.instant().since(then).total("minutes"));
+  if (minutes < 1) return "gerade eben";
+  if (minutes < 60) return `vor ${minutes} Min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `vor ${hours} Std`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "gestern";
+  if (days < 7) return `vor ${days} Tagen`;
+  return formatShortDate(then.toZonedDateTimeISO(TIME_ZONE).toPlainDate().toString());
+}

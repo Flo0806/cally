@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import { today } from "~/utils/calendar";
 import { useLookups } from "~/composables/useLookups";
 import { useTodos } from "~/composables/useTodos";
-
-// shallowRef: Temporal objects carry internal slots and must not be wrapped in a reactive proxy.
-const month = shallowRef(today().toPlainYearMonth());
 
 // Members and categories drive event colors everywhere, todos feed the header count
 await Promise.all([
@@ -19,7 +15,7 @@ await Promise.all([
     <NuxtRouteAnnouncer />
     <AppHeader />
     <main class="main">
-      <CalendarMonth v-model:month="month" />
+      <NuxtPage />
     </main>
     <EventDialog />
   </div>
