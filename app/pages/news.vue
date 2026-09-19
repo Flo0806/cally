@@ -9,6 +9,8 @@ import { useNewsHearts } from "~/composables/useNewsHearts";
 import { useNewsReads } from "~/composables/useNewsReads";
 import { useNewsReader } from "~/composables/useNewsReader";
 
+useHead({ title: "Nachrichten" });
+
 const PREVIEW = 6;
 const FOR_YOU_START = 10;
 const FOR_YOU_STEP = 5;
@@ -18,14 +20,16 @@ const reader = useNewsReader();
 const hearts = useNewsHearts();
 const reads = useNewsReads();
 
-// Always current when the page opens: only the hydration payload counts as cached
+// Client only: the server cache answers in milliseconds, and rendering 250 kB of news into
+// the HTML plus the hydration payload would only slow the page down. Always fresh on open.
 const {
   data: news,
   status,
   refresh,
-} = await useApi("/api/news", {
+} = useApi("/api/news", {
   key: "news",
-  getCachedData: (key, nuxtApp) => (nuxtApp.isHydrating ? nuxtApp.payload.data[key] : undefined),
+  server: false,
+  getCachedData: () => undefined,
 });
 
 // While the page is open, ask the server every few minutes whether the content changed
@@ -59,7 +63,16 @@ onUnmounted(() => {
   clearInterval(statusTimer);
 });
 
-watch(reader.memberId, (id) => Promise.all([hearts.load(id), reads.load(id)]), { immediate: true });
+const forYouLimit = ref(FOR_YOU_START);
+
+watch(
+  reader.memberId,
+  (id) => {
+    forYouLimit.value = FOR_YOU_START;
+    return Promise.all([hearts.load(id), reads.load(id)]);
+  },
+  { immediate: true },
+);
 
 const readerName = computed(() => members.value.find((m) => m.id === reader.memberId.value)?.name);
 
@@ -76,7 +89,6 @@ const ranked = computed(() => {
 
 // "Für dich": unread items from hearted categories. Each heart on a category buys its items
 // two hours of freshness, so favourites float up without hiding real news.
-const forYouLimit = ref(FOR_YOU_START);
 const forYou = computed(() => {
   const counts = hearts.countByCategory.value;
   const now = Temporal.Now.instant();
@@ -264,18 +276,20 @@ async function markRead(item: NewsItem) {
             :class="{ collapsed: isCollapsed(category.id) }"
           >
             <div class="category-head">
-              <button
-                class="category-toggle"
-                type="button"
-                :aria-expanded="!isCollapsed(category.id)"
-                @click="toggleCollapsed(category.id)"
-              >
-                <ChevronDown :size="22" class="chevron" />
-                <h2 class="category-title">{{ category.label }}</h2>
-                <span v-if="isCollapsed(category.id)" class="category-count text-muted tabular">
-                  {{ category.items.length }}
-                </span>
-              </button>
+              <h2 class="category-title">
+                <button
+                  class="category-toggle"
+                  type="button"
+                  :aria-expanded="!isCollapsed(category.id)"
+                  @click="toggleCollapsed(category.id)"
+                >
+                  <ChevronDown :size="22" class="chevron" />
+                  {{ category.label }}
+                  <span v-if="isCollapsed(category.id)" class="category-count text-muted tabular">
+                    {{ category.items.length }}
+                  </span>
+                </button>
+              </h2>
               <button
                 v-if="hearts.countByCategory.value.get(category.id)"
                 class="category-hearts tabular"
@@ -315,6 +329,9 @@ async function markRead(item: NewsItem) {
         </div>
       </div>
     </template>
+    <p v-else-if="status === 'pending' || status === 'idle'" class="empty text-muted">
+      Nachrichten werden geladen ...
+    </p>
     <p v-else class="empty text-muted">Nachrichten sind gerade nicht erreichbar.</p>
 
     <NewsReaderDialog v-model="readerOpen" @select="reader.select" />
@@ -427,7 +444,7 @@ async function markRead(item: NewsItem) {
 
 .category-toggle {
   display: flex;
-  flex: 1;
+  width: 100%;
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
@@ -437,6 +454,7 @@ async function markRead(item: NewsItem) {
   border-radius: var(--radius-sm);
   background: transparent;
   color: inherit;
+  font: inherit;
   text-align: left;
   cursor: pointer;
 }
@@ -456,6 +474,8 @@ async function markRead(item: NewsItem) {
 }
 
 .category-title {
+  flex: 1;
+  min-width: 0;
   margin: 0;
 }
 

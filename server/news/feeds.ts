@@ -35,16 +35,39 @@ function text(value: unknown): string {
   return String(value);
 }
 
+// Named entities that show up in German feeds, numeric ones are decoded generically
+const ENTITIES: Record<string, string> = {
+  nbsp: " ",
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  auml: "ä",
+  ouml: "ö",
+  uuml: "ü",
+  Auml: "Ä",
+  Ouml: "Ö",
+  Uuml: "Ü",
+  szlig: "ß",
+  ndash: "–",
+  mdash: "—",
+  hellip: "…",
+  laquo: "«",
+  raquo: "»",
+  bdquo: "„",
+  ldquo: "“",
+  rdquo: "”",
+  euro: "€",
+};
+
 // Feed bodies carry HTML in CDATA, keep the words only
 function plain(html: string): string {
   return html
     .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number(dec)))
+    .replace(/&([a-z]+);/gi, (match, name: string) => ENTITIES[name] ?? match)
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -70,14 +93,13 @@ function isImage(node: Raw | undefined): boolean {
 
 // Enclosure, then Media RSS, then the first <img> in the HTML body. Half the feeds have one.
 function imageOf(entry: Raw): string | null {
-  const candidates = ([] as unknown[]).concat(
-    entry.enclosure ?? [],
-    entry["media:content"] ?? [],
-    entry["media:thumbnail"] ?? [],
-  ) as Raw[];
-  const media = candidates.find(
-    (node) => node?.["@_url"] && (isImage(node) || node === entry["media:thumbnail"]),
-  );
+  const nodes = (value: unknown) => ([] as unknown[]).concat(value ?? []) as Raw[];
+  // Thumbnails are images by definition, the others have to say so
+  const media = [
+    ...nodes(entry["media:thumbnail"]).filter((node) => node?.["@_url"]),
+    ...nodes(entry.enclosure).filter((node) => node?.["@_url"] && isImage(node)),
+    ...nodes(entry["media:content"]).filter((node) => node?.["@_url"] && isImage(node)),
+  ][0];
   if (media) return String(media["@_url"]);
   const html = text(
     entry["content:encoded"] ?? entry.description ?? entry.summary ?? entry.content ?? "",

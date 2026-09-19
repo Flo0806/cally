@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { today } from "~/utils/calendar";
 
+useHead({ title: "Kalender" });
+
 // shallowRef: Temporal objects carry internal slots and must not be wrapped in a reactive proxy.
 const month = shallowRef(today().toPlainYearMonth());
 </script>
