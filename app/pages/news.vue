@@ -10,6 +10,7 @@ import { useNewsReads } from "~/composables/useNewsReads";
 import { useNewsReader } from "~/composables/useNewsReader";
 
 useHead({ title: "Nachrichten" });
+definePageMeta({ middleware: "news-reader" });
 
 const PREVIEW = 6;
 const FOR_YOU_START = 10;
@@ -51,17 +52,12 @@ async function loadNewer() {
   hasNewer.value = false;
 }
 
-// Ask who is reading every time the page opens, forget it when leaving
+// The reader comes from a cookie; without one the page shows only the choice
 const readerOpen = ref(false);
 onMounted(() => {
-  reader.select(null);
-  readerOpen.value = members.value.length > 0;
   statusTimer = setInterval(checkStatus, STATUS_INTERVAL_MS);
 });
-onUnmounted(() => {
-  reader.select(null);
-  clearInterval(statusTimer);
-});
+onUnmounted(() => clearInterval(statusTimer));
 
 const forYouLimit = ref(FOR_YOU_START);
 
@@ -74,7 +70,8 @@ watch(
   { immediate: true },
 );
 
-const readerName = computed(() => members.value.find((m) => m.id === reader.memberId.value)?.name);
+const readerMember = computed(() => members.value.find((m) => m.id === reader.memberId.value));
+const readerName = computed(() => readerMember.value?.name);
 
 // Hearted categories first, most hearts on top, the rest in registry order and dimmed
 const ranked = computed(() => {
@@ -204,8 +201,16 @@ async function markRead(item: NewsItem) {
 <template>
   <div class="news" :class="{ large }">
     <div class="bar">
-      <button class="btn" type="button" @click="readerOpen = true">
-        {{ readerName ? `${readerName} liest` : "Wer liest?" }}
+      <button
+        v-if="readerMember"
+        class="reader"
+        type="button"
+        :style="{ '--person': `var(--event-${readerMember.color})` }"
+        title="Wechseln"
+        @click="readerOpen = true"
+      >
+        <span class="reader-dot" />
+        {{ readerMember.name }} liest
       </button>
       <div class="bar-right">
         <button
@@ -234,8 +239,20 @@ async function markRead(item: NewsItem) {
       </div>
     </div>
 
-    <template v-if="news">
-      <section v-if="reader.memberId.value && ranked.liked.length" class="card for-you">
+    <section v-if="!readerMember || reader.mustConfirm.value" class="card gate">
+      <h2 class="gate-title">Wer liest?</h2>
+      <p class="text-muted">
+        {{
+          readerMember
+            ? `Zuletzt ${readerMember.name}. Einmal antippen, dann geht es weiter.`
+            : "Nachrichten gibt es nur mit Namen: die Herzen und das Gelesene gehören dir."
+        }}
+      </p>
+      <NewsReaderPick :current="reader.memberId.value" @select="reader.select" />
+    </section>
+
+    <template v-else-if="news">
+      <section v-if="ranked.liked.length" class="card for-you">
         <div class="category-head">
           <h2 class="category-title for-you-title"><Sparkles :size="22" /> Für {{ readerName }}</h2>
           <span class="category-count text-muted tabular">{{ forYou.total }} ungelesen</span>
@@ -329,12 +346,21 @@ async function markRead(item: NewsItem) {
         </div>
       </div>
     </template>
-    <p v-else-if="status === 'pending' || status === 'idle'" class="empty text-muted">
+    <p
+      v-else-if="readerMember && (status === 'pending' || status === 'idle')"
+      class="empty text-muted"
+    >
       Nachrichten werden geladen ...
     </p>
-    <p v-else class="empty text-muted">Nachrichten sind gerade nicht erreichbar.</p>
+    <p v-else-if="readerMember" class="empty text-muted">
+      Nachrichten sind gerade nicht erreichbar.
+    </p>
 
-    <NewsReaderDialog v-model="readerOpen" @select="reader.select" />
+    <NewsReaderDialog
+      v-model="readerOpen"
+      :current="reader.memberId.value"
+      @select="reader.select"
+    />
     <NewsDetailDialog
       v-model="detailOpen"
       :item="selected?.item ?? null"
@@ -375,6 +401,44 @@ async function markRead(item: NewsItem) {
   justify-content: space-between;
   gap: var(--space-4);
   margin-bottom: var(--space-4);
+}
+
+.reader {
+  --person: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--touch);
+  padding: 0 var(--space-4) 0 var(--space-3);
+  border: 2px solid var(--person);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--person) 14%, var(--surface));
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reader-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--person);
+}
+
+.gate {
+  max-width: 720px;
+  margin: var(--space-6) auto;
+  padding: var(--space-6) var(--space-5);
+  text-align: center;
+}
+
+.gate-title {
+  margin-bottom: var(--space-2);
+}
+
+.gate .text-muted {
+  margin-bottom: var(--space-5);
 }
 
 .bar-right {
