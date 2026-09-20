@@ -40,6 +40,10 @@ Runs on a 12" touch tablet in the kitchen. Touch first, readable from a distance
 - Font: Figtree (variable, self-hosted in `public/fonts/`, preloaded in `nuxt.config.ts`), one family for everything.
 - No UI library. Base styles for buttons, inputs etc. are in `app/assets/css/components.css`.
 - Icons: `@lucide/vue`, imported per icon. Weather icons are hand drawn in `WeatherIcon.vue`.
+- Login: `nuxt-auth-utils` (Google OAuth, sealed session cookie). It targets h3 v1 and runs through
+  Nuxt 5's compat layer; where its utils meet our `RequestEvent`, cast via `server/utils/compat.ts`.
+  Only emails in `NUXT_ALLOWED_EMAILS` get a session, every `/api/*` route needs one
+  (`server/middleware/auth.ts`). `NUXT_PUBLIC_AUTH_DISABLED=1` skips it in local dev.
 - No Pinia. App wide state is a composable over `useState` with plain functions as actions
   (see `useLookups`). Decided 2026-09-18, revisit only if cross-entity updates get messy.
 

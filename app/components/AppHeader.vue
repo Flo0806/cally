@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { ListChecks, Plus, Tags, Users } from "@lucide/vue";
+import { ListChecks, LogOut, Plus, Tags, Users } from "@lucide/vue";
 import { today } from "~/utils/calendar";
 import { useEventEditor } from "~/composables/useEventEditor";
 import { useTodos } from "~/composables/useTodos";
 
 // Today's summary lands here in a later step.
 const editor = useEventEditor();
+const session = useUserSession();
+
+async function logout() {
+  await session.clear();
+  await navigateTo("/login");
+}
 const todos = useTodos();
 const membersOpen = ref(false);
 const todosOpen = ref(false);
@@ -45,6 +51,16 @@ const categoriesOpen = ref(false);
         @click="editor.openNew(today().toString())"
       >
         <Plus :size="24" />
+      </button>
+      <button
+        v-if="session.loggedIn.value"
+        class="btn btn-ghost btn-icon logout"
+        type="button"
+        aria-label="Abmelden"
+        title="Abmelden"
+        @click="logout"
+      >
+        <LogOut :size="20" />
       </button>
     </div>
 
@@ -102,6 +118,10 @@ const categoriesOpen = ref(false);
 
 .todos {
   position: relative;
+}
+
+.logout {
+  margin-left: var(--space-2);
 }
 
 .count {

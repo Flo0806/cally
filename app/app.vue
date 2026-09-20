@@ -2,22 +2,33 @@
 import { useLookups } from "~/composables/useLookups";
 import { useTodos } from "~/composables/useTodos";
 
+// Without a session only the login page renders, so nothing else is loaded
+const { loggedIn } = useUserSession();
+const authed = computed(() => loggedIn.value || useRuntimeConfig().public.authDisabled === "1");
+
 // Members and categories drive event colors everywhere, todos feed the header count
-await Promise.all([
-  useLookups("members").load(),
-  useLookups("categories").load(),
-  useTodos().load(),
-]);
+if (authed.value) {
+  await Promise.all([
+    useLookups("members").load(),
+    useLookups("categories").load(),
+    useTodos().load(),
+  ]);
+}
 </script>
 
 <template>
   <div class="app">
     <NuxtRouteAnnouncer />
-    <AppHeader />
-    <main class="main">
+    <template v-if="authed">
+      <AppHeader />
+      <main class="main">
+        <NuxtPage />
+      </main>
+      <EventDialog />
+    </template>
+    <main v-else class="main">
       <NuxtPage />
     </main>
-    <EventDialog />
   </div>
 </template>
 

@@ -18,6 +18,8 @@
     "@lucide/vue": "^1.47.0",
     "fast-xml-parser": "^5.11.1",
     "nuxt": "npm:nuxt-nightly@5x",
+    "nuxt-auth-utils": "^0.5.30",
+    "ofetch": "2.0.0-alpha.3",
     "rrule-temporal": "^2.2.5",
     "temporal-polyfill": "^1.0.5",
     "valibot": "^1.5.0",
@@ -25,6 +27,7 @@
     "vue-router": "^5.3.1"
   },
   "devDependencies": {
+    "nuxt-spyglass": "^1.0.0",
     "oxfmt": "^0.68.0",
     "oxlint": "^1.83.0"
   },

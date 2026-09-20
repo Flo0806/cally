@@ -27,10 +27,12 @@ function toApiError(error: unknown): ApiError {
   return new ApiError(message, status, issues);
 }
 
-// Imperative calls from event handlers: create, update, delete
+// Imperative calls from event handlers: create, update, delete. During SSR the request's
+// cookies must travel along, otherwise our own API sees no session.
 export async function api<T>(url: string, options?: Parameters<typeof $fetch>[1]): Promise<T> {
+  const fetcher = import.meta.server ? useRequestFetch() : $fetch;
   try {
-    return (await $fetch(url, options)) as T;
+    return (await fetcher(url, options)) as T;
   } catch (error) {
     throw toApiError(error);
   }

@@ -2,6 +2,7 @@
 export default defineNuxtConfig({
   compatibilityDate: "latest",
   devtools: { enabled: true },
+  modules: ["nuxt-auth-utils", "nuxt-spyglass"],
   nitro: {
     experimental: { database: true, tasks: true },
     scheduledTasks: {
@@ -9,6 +10,17 @@ export default defineNuxtConfig({
     },
   },
   runtimeConfig: {
+    // Comma separated, the only Google accounts that may log in
+    allowedEmails: "",
+    // Sealed cookie, one year: the kitchen tablet must not ask again every week
+    session: {
+      name: "cally-session",
+      maxAge: 365 * 24 * 60 * 60,
+    },
+    public: {
+      // "1" skips the login, local development only
+      authDisabled: "",
+    },
     weather: {
       latitude: "",
       longitude: "",
