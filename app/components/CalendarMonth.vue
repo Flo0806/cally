@@ -21,9 +21,9 @@ const emit = defineEmits<{ "update:month": [month: Temporal.PlainYearMonth] }>()
 const title = computed(() => formatMonth(props.month));
 const { days, chipsFor } = await useMonthOccurrences(toRef(props, "month"));
 
-// All cells share one height, so measuring the first one is enough
-const chipLists = useTemplateRef<HTMLElement[]>("chips");
-const capacity = useFitCount(chipLists, { itemHeight: 26, gap: 3 });
+// All cells share one height, so measuring the first chip list is enough
+const grid = useTemplateRef<HTMLElement>("grid");
+const capacity = useFitCount(grid, { item: ".chips", itemHeight: 26, gap: 3 });
 
 const editor = useEventEditor();
 
@@ -82,7 +82,7 @@ function goToday() {
       <span v-for="label in WEEKDAY_LABELS" :key="label" class="weekday">{{ label }}</span>
     </div>
 
-    <div class="grid grid-view">
+    <div ref="grid" class="grid grid-view">
       <div
         v-for="day in days"
         :key="day.iso"
@@ -99,7 +99,7 @@ function goToday() {
             {{ chipsFor(day.iso).length }}
           </span>
         </div>
-        <ul ref="chips" class="chips">
+        <ul class="chips">
           <li
             v-for="chip in chipsFor(day.iso).slice(0, capacity)"
             :key="chip.key"

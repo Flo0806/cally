@@ -24,7 +24,14 @@ export async function useMonthOccurrences(month: Ref<Temporal.PlainYearMonth>) {
 
   // Exactly the visible grid, refetched when the month changes. Visited months stay cached.
   const key = computed(() => `events:${from.value}:${to.value}`);
-  const fetched = useApi("/api/events", { key, query: { from, to } });
+  // Visited months come from payload.data, where refreshes write to. Nuxt's default reads
+  // static.data on a key change, which still holds the hydration snapshot. A refresh must fetch.
+  const fetched = useApi("/api/events", {
+    key,
+    query: { from, to },
+    getCachedData: (cacheKey, nuxtApp, ctx) =>
+      ctx.cause.startsWith("refresh") ? undefined : nuxtApp.payload.data[cacheKey],
+  });
   const { data: occurrences, refresh } = fetched;
 
   // Registered before the await below, the Nuxt context is gone after it on the server.
