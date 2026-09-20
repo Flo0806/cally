@@ -28,7 +28,28 @@ const labels = computed(() => LABELS[props.kind]);
 const { items, load, create, update, remove } = useLookups(props.kind);
 
 const selectedId = ref<string | null>(null);
-const form = reactive({ name: "", color: "blue" as Color });
+const form = reactive({ name: "", color: "blue" as Color, ntfyTopic: "" });
+// Suggest a topic from the name until the user types one themselves
+const topicTouched = ref(false);
+watch(
+  () => form.name,
+  (name) => {
+    if (props.kind !== "members" || topicTouched.value || selectedId.value) return;
+    form.ntfyTopic = name.trim() ? `cally_${slug(name)}` : "";
+  },
+);
+
+function slug(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "");
+}
 const fieldError = ref("");
 const formError = ref("");
 const confirmDelete = ref(false);
@@ -43,6 +64,8 @@ function reset() {
   selectedId.value = null;
   form.name = "";
   form.color = "blue";
+  form.ntfyTopic = "";
+  topicTouched.value = false;
   fieldError.value = "";
   formError.value = "";
   confirmDelete.value = false;
@@ -53,6 +76,8 @@ function select(item: Lookup) {
   selectedId.value = item.id;
   form.name = item.name;
   form.color = item.color;
+  form.ntfyTopic = item.ntfyTopic ?? "";
+  topicTouched.value = true;
 }
 
 async function focusName() {
@@ -76,7 +101,11 @@ watch(open, async (isOpen) => {
 async function save() {
   fieldError.value = "";
   formError.value = "";
-  const parsed = v.safeParse(lookupInput, { name: form.name, color: form.color });
+  const parsed = v.safeParse(lookupInput, {
+    name: form.name,
+    color: form.color,
+    ntfyTopic: props.kind === "members" ? form.ntfyTopic.trim() || null : null,
+  });
   if (!parsed.success) {
     fieldError.value = parsed.issues[0]?.message ?? "Ungültige Eingabe";
     return;
@@ -160,6 +189,21 @@ async function destroy() {
           enterkeyhint="done"
         />
         <p v-if="fieldError" class="error">{{ fieldError }}</p>
+      </div>
+
+      <div v-if="kind === 'members'" class="field">
+        <label class="field-label" :for="`${formId}-topic`">Handy (ntfy-Topic)</label>
+        <input
+          :id="`${formId}-topic`"
+          v-model="form.ntfyTopic"
+          class="input"
+          autocomplete="off"
+          placeholder="leer = kein Handy"
+          @input="topicTouched = true"
+        />
+        <p class="hint text-muted">
+          Dieses Topic in der ntfy-App abonnieren, dann kommen Termine aufs Handy.
+        </p>
       </div>
 
       <div class="field">
@@ -280,6 +324,10 @@ async function destroy() {
 
 .swatch.selected {
   border-color: var(--ink);
+}
+
+.hint {
+  font-size: var(--text-sm);
 }
 
 .error {

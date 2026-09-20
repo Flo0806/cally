@@ -14,7 +14,13 @@ function toLookup(row: Row): Lookup {
     name: String(row.name),
     color: row.color as Lookup["color"],
     position: Number(row.position),
+    ntfyTopic: row.ntfy_topic ? String(row.ntfy_topic) : null,
   };
+}
+
+// Only members carry a phone topic
+function topicFor(table: LookupTable, value: string | null | undefined): string | null {
+  return table === "members" ? value || null : null;
 }
 
 export async function listLookups(table: LookupTable): Promise<Lookup[]> {
@@ -40,10 +46,17 @@ export async function createLookup(table: LookupTable, input: LookupInput): Prom
         next: number;
       }
     ).next;
-  await db
-    .prepare(`INSERT INTO ${table} (id, name, color, position) VALUES (?, ?, ?, ?)`)
-    .run(id, input.name, input.color, position);
-  return { id, name: input.name, color: input.color, position };
+  const ntfyTopic = topicFor(table, input.ntfyTopic);
+  if (table === "members") {
+    await db
+      .prepare(`INSERT INTO members (id, name, color, position, ntfy_topic) VALUES (?, ?, ?, ?, ?)`)
+      .run(id, input.name, input.color, position, ntfyTopic);
+  } else {
+    await db
+      .prepare(`INSERT INTO ${table} (id, name, color, position) VALUES (?, ?, ?, ?)`)
+      .run(id, input.name, input.color, position);
+  }
+  return { id, name: input.name, color: input.color, position, ntfyTopic };
 }
 
 export async function updateLookup(
@@ -52,11 +65,21 @@ export async function updateLookup(
   patch: LookupPatch,
 ): Promise<Lookup> {
   const current = await getLookup(table, id);
-  const next = { ...current, ...patch };
+  const next = {
+    ...current,
+    ...patch,
+    ntfyTopic: topicFor(table, patch.ntfyTopic ?? current.ntfyTopic),
+  };
   const db = await useDb();
-  await db
-    .prepare(`UPDATE ${table} SET name = ?, color = ?, position = ? WHERE id = ?`)
-    .run(next.name, next.color, next.position, id);
+  if (table === "members") {
+    await db
+      .prepare(`UPDATE members SET name = ?, color = ?, position = ?, ntfy_topic = ? WHERE id = ?`)
+      .run(next.name, next.color, next.position, next.ntfyTopic, id);
+  } else {
+    await db
+      .prepare(`UPDATE ${table} SET name = ?, color = ?, position = ? WHERE id = ?`)
+      .run(next.name, next.color, next.position, id);
+  }
   return next;
 }
 

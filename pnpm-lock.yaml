@@ -20,6 +20,9 @@ importers:
       nuxt-auth-utils:
         specifier: ^0.5.30
         version: 0.5.30(magic-string@1.4.1)(magicast@0.5.5)(rolldown@1.2.9)(unplugin@3.4.0(rolldown@1.2.9)(vite@8.3.0))
+      nuxt-pigeon:
+        specifier: ^1.0.0
+        version: 1.0.0(magic-string@1.4.1)(magicast@0.5.5)(rolldown@1.2.9)(unplugin@3.4.0(rolldown@1.2.9)(vite@8.3.0))
       ofetch:
         specifier: 2.0.0-alpha.3
         version: 2.0.0-alpha.3
@@ -1625,6 +1628,9 @@ packages:
         optional: true
       jiti:
         optional: true
+
+  nuxt-pigeon@1.0.0:
+    resolution: {integrity: sha512-EFq38aAN8BpyEudi+lJ/+Mpy8jpGywyAWhbA4KHBHXd1iq7RvtfKdaNI7T5V1SFFBhtMeFlQqFnHbjVBZ1kelA==}
 
   nuxt-spyglass@1.0.0:
     resolution: {integrity: sha512-vGeMScjC3h+SngB0TFlgM/vkhTcrqKFlo1XFuc3a5l1xRdHDhAcNcvUWTdKc/z3GFpM/KmCNPV4iwlk+fIVglQ==}
@@ -4048,6 +4054,17 @@ snapshots:
       - vue-tsc
       - webpack
       - yaml
+
+  nuxt-pigeon@1.0.0(magic-string@1.4.1)(magicast@0.5.5)(rolldown@1.2.9)(unplugin@3.4.0(rolldown@1.2.9)(vite@8.3.0)):
+    dependencies:
+      '@nuxt/kit': 4.5.2(magic-string@1.4.1)(magicast@0.5.5)(rolldown@1.2.9)(unplugin@3.4.0(rolldown@1.2.9)(vite@8.3.0))
+      ofetch: 1.5.1
+    transitivePeerDependencies:
+      - magic-string
+      - magicast
+      - oxc-parser
+      - rolldown
+      - unplugin
 
   nuxt-spyglass@1.0.0(magic-string@1.4.1)(magicast@0.5.5)(rolldown@1.2.9)(unplugin@3.4.0(rolldown@1.2.9)(vite@8.3.0)):
     dependencies:

@@ -12,6 +12,16 @@ export const lookupInput = v.object({
   ),
   color: v.picklist(COLORS, "Unbekannte Farbe"),
   position: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0))),
+  ntfyTopic: v.optional(
+    v.nullable(
+      v.pipe(
+        v.string(),
+        v.trim(),
+        v.regex(/^[A-Za-z0-9_-]{1,64}$/, "Nur Buchstaben, Zahlen, _ und -"),
+      ),
+    ),
+    null,
+  ),
 });
 
 export const lookupPatch = v.partial(lookupInput);

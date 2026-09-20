@@ -7,6 +7,8 @@ export interface Lookup {
   name: string;
   color: Color;
   position: number;
+  // Members only: ntfy topic of their phone
+  ntfyTopic: string | null;
 }
 
 export type Member = Lookup;

@@ -88,4 +88,12 @@ export const migrations: Migration[] = [
       `ALTER TABLE events ADD COLUMN travel_minutes INTEGER`,
     ],
   },
+  {
+    version: 4,
+    name: "member-ntfy-topic",
+    sql: [
+      // Phone notifications go to this ntfy topic, empty means no phone
+      `ALTER TABLE members ADD COLUMN ntfy_topic TEXT`,
+    ],
+  },
 ];

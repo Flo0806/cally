@@ -2,7 +2,13 @@
 export default defineNuxtConfig({
   compatibilityDate: "latest",
   devtools: { enabled: true },
-  modules: ["nuxt-auth-utils", "nuxt-spyglass"],
+  modules: ["nuxt-auth-utils", "nuxt-pigeon", "nuxt-spyglass"],
+  nuxtPigeon: {
+    channels: {
+      // Server and token come from PIGEON_NTFY_*, the topic is set per message (one per member)
+      ntfy: { topic: "cally_app" },
+    },
+  },
   nitro: {
     experimental: { database: true, tasks: true },
     scheduledTasks: {

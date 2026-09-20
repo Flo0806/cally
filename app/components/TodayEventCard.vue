@@ -1,8 +1,18 @@
 <script setup lang="ts">
-import { Car, ChevronDown, Construction, MapPin, TrafficCone, Umbrella } from "@lucide/vue";
+import {
+  Car,
+  ChevronDown,
+  Construction,
+  Loader2,
+  MapPin,
+  Smartphone,
+  TrafficCone,
+  Umbrella,
+} from "@lucide/vue";
 import { Temporal } from "temporal-polyfill";
 import type { TodayEvent } from "#shared/types";
 import { formatDuration, formatTime } from "~/utils/calendar";
+import { ApiError, api } from "~/utils/api";
 import { weatherInfo } from "~/utils/weather";
 import { useEventColor } from "~/composables/useEventColor";
 import { useLookups } from "~/composables/useLookups";
@@ -61,6 +71,27 @@ const travelLine = computed(() => {
 });
 
 const worstIncident = computed(() => props.event.incidents[0] ?? null);
+
+// "Aufs Handy": push this event to the phones it concerns
+const sending = ref(false);
+const sentTo = ref<string[]>([]);
+const sendError = ref("");
+
+async function sendToPhone() {
+  sending.value = true;
+  sendError.value = "";
+  try {
+    const result = await api<{ sent: string[] }>("/api/today/notify", {
+      method: "POST",
+      body: { key: props.event.key },
+    });
+    sentTo.value = result.sent;
+  } catch (e) {
+    sendError.value = (e as ApiError).message;
+  } finally {
+    sending.value = false;
+  }
+}
 
 function minutesUntil(dateTime: string): number {
   return Math.round(
@@ -162,6 +193,18 @@ function minutesUntil(dateTime: string): number {
       <p v-if="!event.location && !event.notes && !people.length" class="text-muted">
         Keine weiteren Angaben.
       </p>
+
+      <div v-if="event.location" class="actions">
+        <button class="btn" type="button" :disabled="sending" @click="sendToPhone">
+          <Loader2 v-if="sending" :size="18" class="spin" />
+          <Smartphone v-else :size="18" />
+          Aufs Handy
+        </button>
+        <span v-if="sentTo.length" class="sent text-muted"
+          >Gesendet an {{ sentTo.join(", ") }}</span
+        >
+        <span v-else-if="sendError" class="sent error">{{ sendError }}</span>
+      </div>
     </div>
   </article>
 </template>
@@ -319,6 +362,22 @@ function minutesUntil(dateTime: string): number {
 
 .notes {
   white-space: pre-wrap;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.sent {
+  font-size: var(--text-sm);
+}
+
+.sent.error {
+  color: var(--danger);
 }
 
 .incidents {

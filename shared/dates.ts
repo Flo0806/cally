@@ -37,3 +37,7 @@ export function toDateTimeString(value: Temporal.PlainDateTime): string {
 export function nowIso(): string {
   return Temporal.Now.instant().toString();
 }
+
+export function formatTime(dateTime: string): string {
+  return dateTime.slice(11, 16);
+}

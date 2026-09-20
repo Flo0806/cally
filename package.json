@@ -19,6 +19,7 @@
     "fast-xml-parser": "^5.11.1",
     "nuxt": "npm:nuxt-nightly@5x",
     "nuxt-auth-utils": "^0.5.30",
+    "nuxt-pigeon": "^1.0.0",
     "ofetch": "2.0.0-alpha.3",
     "rrule-temporal": "^2.2.5",
     "temporal-polyfill": "^1.0.5",
