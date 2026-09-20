@@ -1,3 +1,5 @@
+import { version } from "./package.json";
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "latest",
@@ -27,6 +29,8 @@ export default defineNuxtConfig({
     public: {
       // "1" skips the login, local development only
       authDisabled: "",
+      // From package.json, bumped by scripts/release.sh
+      version,
     },
     weather: {
       latitude: "",

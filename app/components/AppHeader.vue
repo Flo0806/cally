@@ -18,6 +18,7 @@ import { useToday } from "~/composables/useToday";
 // Today's summary lands here in a later step.
 const editor = useEventEditor();
 const session = useUserSession();
+const version = useRuntimeConfig().public.version;
 
 async function logout() {
   await session.clear();
@@ -35,7 +36,10 @@ const categoriesOpen = ref(false);
 
 <template>
   <header class="header">
-    <h1 class="brand">cally</h1>
+    <div class="brand-block">
+      <h1 class="brand">cally</h1>
+      <span class="version tabular">v{{ version }}</span>
+    </div>
     <button class="btn btn-icon today" aria-label="Heute" title="Heute" @click="todayOpen = true">
       <CalendarClock :size="22" />
       <span v-if="todayCount" class="count tabular">{{ todayCount }}</span>
@@ -139,9 +143,22 @@ const categoriesOpen = ref(false);
   border-bottom: 1px solid var(--line);
 }
 
+.brand-block {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
 .brand {
   font-size: var(--text-xl);
   color: var(--accent);
+}
+
+.version {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-faint);
 }
 
 .nav {
@@ -219,6 +236,10 @@ const categoriesOpen = ref(false);
     width: 1ch;
     overflow: hidden;
     white-space: nowrap;
+  }
+
+  .version {
+    display: none;
   }
 
   .nav-text {

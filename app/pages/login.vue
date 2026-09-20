@@ -2,6 +2,7 @@
 useHead({ title: "Anmelden" });
 
 const route = useRoute();
+const version = useRuntimeConfig().public.version;
 
 const MESSAGES: Record<string, string> = {
   denied: "Dieses Google-Konto ist nicht freigeschaltet.",
@@ -17,6 +18,7 @@ const message = computed(() => MESSAGES[String(route.query.error ?? "")] ?? "");
       <p class="text-muted">Der Familienkalender. Bitte anmelden.</p>
       <a class="btn btn-primary btn-lg" href="/auth/google">Mit Google anmelden</a>
       <p v-if="message" class="error">{{ message }}</p>
+      <p class="version text-muted tabular">v{{ version }}</p>
     </div>
   </div>
 </template>
@@ -46,5 +48,9 @@ const message = computed(() => MESSAGES[String(route.query.error ?? "")] ?? "");
 .error {
   font-size: var(--text-sm);
   color: var(--danger);
+}
+
+.version {
+  font-size: 12px;
 }
 </style>
