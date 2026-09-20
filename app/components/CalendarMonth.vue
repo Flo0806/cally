@@ -1,8 +1,18 @@
 <script setup lang="ts">
 import { MapPin } from "@lucide/vue";
 import { Temporal } from "temporal-polyfill";
-import { WEEKDAY_LABELS, formatMonth, formatTime, today } from "~/utils/calendar";
-import { useMonthOccurrences } from "~/composables/useMonthOccurrences";
+import { Plus } from "@lucide/vue";
+import { dateOf } from "#shared/dates";
+import {
+  WEEKDAY_LABELS,
+  formatLongDate,
+  formatMonth,
+  formatShortDate,
+  formatTime,
+  today,
+} from "~/utils/calendar";
+import { useEventEditor } from "~/composables/useEventEditor";
+import { useMonthOccurrences, type Chip } from "~/composables/useMonthOccurrences";
 import { useFitCount } from "~/composables/useFitCount";
 
 const props = defineProps<{ month: Temporal.PlainYearMonth }>();
@@ -14,6 +24,24 @@ const { days, chipsFor } = await useMonthOccurrences(toRef(props, "month"));
 // All cells share one height, so measuring the first one is enough
 const chipLists = useTemplateRef<HTMLElement[]>("chips");
 const capacity = useFitCount(chipLists, { itemHeight: 26, gap: 3 });
+
+const editor = useEventEditor();
+
+// Phone: the month as an agenda, only days that have something
+const agenda = computed(() =>
+  days.value
+    .filter((day) => day.inMonth)
+    .map((day) => ({ day, chips: chipsFor(day.iso) }))
+    .filter((entry) => entry.chips.length > 0),
+);
+
+function agendaWhen(chip: Chip): string {
+  const o = chip.occurrence;
+  if (dateOf(o.start) !== dateOf(o.end)) {
+    return `${formatShortDate(dateOf(o.start))} bis ${formatShortDate(dateOf(o.end))}`;
+  }
+  return o.allDay ? "Ganztägig" : formatTime(o.start);
+}
 
 const selectedDay = ref<string | null>(null);
 const dayOpen = computed({
@@ -46,11 +74,11 @@ function goToday() {
       </div>
     </div>
 
-    <div class="weekdays">
+    <div class="weekdays grid-view">
       <span v-for="label in WEEKDAY_LABELS" :key="label" class="weekday">{{ label }}</span>
     </div>
 
-    <div class="grid">
+    <div class="grid grid-view">
       <div
         v-for="day in days"
         :key="day.iso"
@@ -83,6 +111,47 @@ function goToday() {
           </li>
         </ul>
       </div>
+    </div>
+
+    <div class="agenda list-view">
+      <template v-if="agenda.length">
+        <section v-for="entry in agenda" :key="entry.day.iso" class="agenda-day">
+          <div class="agenda-head" :class="{ today: entry.day.isToday }">
+            <button class="agenda-date" type="button" @click="selectedDay = entry.day.iso">
+              {{ formatLongDate(entry.day.iso) }}
+            </button>
+            <button
+              class="btn btn-ghost btn-icon agenda-add"
+              type="button"
+              aria-label="Termin an diesem Tag"
+              @click="editor.openNew(entry.day.iso)"
+            >
+              <Plus :size="20" />
+            </button>
+          </div>
+          <ul class="agenda-list">
+            <li v-for="chip in entry.chips" :key="chip.key">
+              <button
+                class="agenda-row"
+                type="button"
+                :style="{
+                  '--row-color': chip.color ? `var(--event-${chip.color})` : 'var(--accent)',
+                }"
+                @click="editor.openEdit(chip.occurrence.eventId, chip.occurrence.start)"
+              >
+                <span class="agenda-when tabular">{{ agendaWhen(chip) }}</span>
+                <span class="agenda-text">
+                  <span class="agenda-title">{{ chip.occurrence.title }}</span>
+                  <span v-if="chip.occurrence.location" class="agenda-location">
+                    {{ chip.occurrence.location }}
+                  </span>
+                </span>
+              </button>
+            </li>
+          </ul>
+        </section>
+      </template>
+      <p v-else class="agenda-empty text-muted">Nichts geplant im {{ title }}.</p>
     </div>
 
     <DayDialog v-model="dayOpen" :date="selectedDay ?? ''" :occurrences="selectedOccurrences" />
@@ -264,5 +333,142 @@ function goToday() {
 .chip-pin {
   flex: none;
   opacity: 0.7;
+}
+
+/* Phone: the grid gives way to an agenda, the toolbar shrinks a notch */
+.list-view {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .calendar {
+    padding: var(--space-3) var(--space-3) var(--space-4);
+    overflow-y: auto;
+  }
+
+  .toolbar {
+    margin-bottom: var(--space-3);
+  }
+
+  .title {
+    font-size: var(--text-xl);
+  }
+
+  .nav .btn {
+    min-height: 44px;
+  }
+
+  .nav .btn-icon {
+    width: 44px;
+  }
+
+  .grid-view {
+    display: none;
+  }
+
+  .list-view {
+    display: block;
+  }
+}
+
+.agenda-day {
+  margin-bottom: var(--space-4);
+}
+
+.agenda-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  background: var(--bg);
+}
+
+.agenda-date {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink-muted);
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.agenda-head.today .agenda-date {
+  color: var(--accent);
+}
+
+.agenda-add {
+  width: 44px;
+  min-height: 44px;
+  color: var(--ink-faint);
+}
+
+.agenda-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.agenda-row {
+  --row-color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--row-color) 10%, var(--surface));
+  box-shadow: inset 4px 0 0 var(--row-color);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.agenda-row:active {
+  background: color-mix(in srgb, var(--row-color) 20%, var(--surface));
+}
+
+.agenda-when {
+  flex: none;
+  width: 84px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.agenda-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.agenda-title {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agenda-location {
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agenda-empty {
+  padding: var(--space-6) 0;
+  text-align: center;
 }
 </style>

@@ -167,6 +167,14 @@ function onBackdrop(event: MouseEvent) {
   flex: 1;
 }
 
+@media (max-width: 479px) {
+  .dialog.right,
+  .dialog.left {
+    width: 100vw;
+    max-width: 100vw;
+  }
+}
+
 .panel {
   display: flex;
   flex-direction: column;
