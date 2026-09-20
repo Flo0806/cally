@@ -68,9 +68,13 @@ function goToday() {
     <div class="toolbar">
       <h2 class="title">{{ title }}</h2>
       <div class="nav">
-        <button class="btn btn-icon" aria-label="Vorheriger Monat" @click="shift(-1)">‹</button>
-        <button class="btn btn-ghost" @click="goToday">Heute</button>
-        <button class="btn btn-icon" aria-label="Nächster Monat" @click="shift(1)">›</button>
+        <button type="button" class="btn btn-icon" aria-label="Vorheriger Monat" @click="shift(-1)">
+          ‹
+        </button>
+        <button type="button" class="btn btn-ghost" @click="goToday">Heute</button>
+        <button type="button" class="btn btn-icon" aria-label="Nächster Monat" @click="shift(1)">
+          ›
+        </button>
       </div>
     </div>
 

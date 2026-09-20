@@ -1,3 +1,5 @@
+import type { FetchOptions } from "ofetch";
+
 export interface ApiIssue {
   path: string;
   message: string;
@@ -28,9 +30,13 @@ function toApiError(error: unknown): ApiError {
 }
 
 // Imperative calls from event handlers: create, update, delete. During SSR the request's
-// cookies must travel along, otherwise our own API sees no session.
-export async function api<T>(url: string, options?: Parameters<typeof $fetch>[1]): Promise<T> {
-  const fetcher = import.meta.server ? useRequestFetch() : $fetch;
+// cookies must travel along, otherwise our own API sees no session. Plain ofetch options:
+// the route typed $fetch signature is too deep for TypeScript once there are many routes.
+export async function api<T>(url: string, options?: FetchOptions): Promise<T> {
+  const fetcher = (import.meta.server ? useRequestFetch() : $fetch) as (
+    url: string,
+    options?: FetchOptions,
+  ) => Promise<unknown>;
   try {
     return (await fetcher(url, options)) as T;
   } catch (error) {

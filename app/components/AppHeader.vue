@@ -40,7 +40,13 @@ const categoriesOpen = ref(false);
       <h1 class="brand">cally</h1>
       <span class="version tabular">v{{ version }}</span>
     </div>
-    <button class="btn btn-icon today" aria-label="Heute" title="Heute" @click="todayOpen = true">
+    <button
+      type="button"
+      class="btn btn-icon today"
+      aria-label="Heute"
+      title="Heute"
+      @click="todayOpen = true"
+    >
       <CalendarClock :size="22" />
       <span v-if="todayCount" class="count tabular">{{ todayCount }}</span>
     </button>
@@ -57,6 +63,7 @@ const categoriesOpen = ref(false);
     <HeaderWeather />
     <div class="actions">
       <button
+        type="button"
         class="btn btn-icon wide-only"
         aria-label="Kategorien"
         title="Kategorien"
@@ -65,6 +72,7 @@ const categoriesOpen = ref(false);
         <Tags :size="22" />
       </button>
       <button
+        type="button"
         class="btn btn-icon wide-only"
         aria-label="Familie"
         title="Familie"
@@ -73,6 +81,7 @@ const categoriesOpen = ref(false);
         <Users :size="22" />
       </button>
       <button
+        type="button"
         class="btn btn-icon wide-only todos"
         aria-label="Todos"
         title="Todos"
@@ -84,6 +93,7 @@ const categoriesOpen = ref(false);
         }}</span>
       </button>
       <button
+        type="button"
         class="btn btn-primary btn-icon"
         aria-label="Neuer Termin"
         title="Neuer Termin"
@@ -102,6 +112,7 @@ const categoriesOpen = ref(false);
         <LogOut :size="20" />
       </button>
       <button
+        type="button"
         class="btn btn-icon narrow-only"
         aria-label="Menü"
         title="Menü"

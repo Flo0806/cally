@@ -255,9 +255,9 @@ async function markRead(item: NewsItem) {
         </ul>
         <p v-else class="empty-inline text-muted">Alles gelesen. Neues kommt alle 30 Minuten.</p>
         <button
+          type="button"
           v-if="forYou.total > forYou.shown.length"
           class="btn btn-ghost more"
-          type="button"
           @click="forYouLimit += FOR_YOU_STEP"
         >
           Mehr zeigen
@@ -317,9 +317,9 @@ async function markRead(item: NewsItem) {
                 />
               </ul>
               <button
+                type="button"
                 v-if="category.items.length > PREVIEW"
                 class="btn btn-ghost more"
-                type="button"
                 @click="toggleExpanded(category.id)"
               >
                 {{ expanded.has(category.id) ? "Weniger" : `Alle ${category.items.length}` }}

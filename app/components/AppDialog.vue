@@ -64,7 +64,12 @@ function onBackdrop(event: MouseEvent) {
           <h2 class="title">{{ title }}</h2>
           <p v-if="description" class="description">{{ description }}</p>
         </div>
-        <button class="btn btn-ghost btn-icon" aria-label="Schließen" @click="open = false">
+        <button
+          class="btn btn-ghost btn-icon"
+          type="button"
+          aria-label="Schließen"
+          @click="open = false"
+        >
           <X :size="22" />
         </button>
       </header>

@@ -269,28 +269,16 @@ async function destroy(scope: "one" | "all") {
         <div class="field">
           <label class="field-label" :for="`${formId}-start`">Beginn</label>
           <div class="field-row">
-            <input :id="`${formId}-start`" v-model="form.startDate" class="input" type="date" />
-            <input
-              v-if="!form.allDay"
-              v-model="form.startTime"
-              class="input time"
-              type="time"
-              aria-label="Uhrzeit Beginn"
-            />
+            <DateField :id="`${formId}-start`" v-model="form.startDate" label="Beginn" />
+            <TimeField v-if="!form.allDay" v-model="form.startTime" label="Uhrzeit Beginn" />
           </div>
           <p v-if="errors.start" class="error">{{ errors.start }}</p>
         </div>
         <div class="field">
           <label class="field-label" :for="`${formId}-end`">Ende</label>
           <div class="field-row">
-            <input :id="`${formId}-end`" v-model="form.endDate" class="input" type="date" />
-            <input
-              v-if="!form.allDay"
-              v-model="form.endTime"
-              class="input time"
-              type="time"
-              aria-label="Uhrzeit Ende"
-            />
+            <DateField :id="`${formId}-end`" v-model="form.endDate" label="Ende" />
+            <TimeField v-if="!form.allDay" v-model="form.endTime" label="Uhrzeit Ende" />
           </div>
           <p v-if="errors.end" class="error">{{ errors.end }}</p>
         </div>
@@ -340,7 +328,12 @@ async function destroy(scope: "one" | "all") {
       <div v-if="form.repeat !== 'none' && form.repeat !== 'custom'" class="field until">
         <label class="field-label" :for="`${formId}-until`">Endet am</label>
         <div class="field-row">
-          <input :id="`${formId}-until`" v-model="form.until" class="input" type="date" />
+          <DateField
+            :id="`${formId}-until`"
+            v-model="form.until"
+            label="Endet am"
+            placeholder="Nie"
+          />
           <button v-if="form.until" class="btn btn-ghost" type="button" @click="form.until = ''">
             Nie
           </button>
