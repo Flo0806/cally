@@ -31,6 +31,8 @@ export default defineNuxtConfig({
       authDisabled: "",
       // From package.json, bumped by scripts/release.sh
       version,
+      // "1" registers the service worker in dev too, to test it in the browser devtools
+      sw: "",
     },
     weather: {
       latitude: "",
@@ -64,6 +66,8 @@ export default defineNuxtConfig({
           href: "/fonts/figtree-latin.woff2",
           crossorigin: "",
         },
+        { rel: "manifest", href: "/manifest.webmanifest" },
+        { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
       ],
     },
   },
