@@ -48,6 +48,28 @@ export interface Occurrence {
   travelMinutes: number | null;
 }
 
+// Weather at one place and hour
+export interface SpotWeather {
+  temp: number;
+  code: number;
+  rain: number;
+}
+
+// One of today's events with everything the "Heute" drawer needs decided on the server
+export interface TodayEvent extends Occurrence {
+  notes: string;
+  // When to leave home, only for timed events with a resolved place and a drive time
+  departAt: string | null;
+  bufferMinutes: number;
+  rainWarning: boolean;
+  weather: SpotWeather | null;
+}
+
+export interface Today {
+  date: string;
+  events: TodayEvent[];
+}
+
 export interface Place {
   label: string;
   lat: number;

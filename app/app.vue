@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useLookups } from "~/composables/useLookups";
 import { useTodos } from "~/composables/useTodos";
+import { useToday } from "~/composables/useToday";
 
 // Without a session only the login page renders, so nothing else is loaded
 const { loggedIn } = useUserSession();
@@ -12,6 +13,7 @@ if (authed.value) {
     useLookups("members").load(),
     useLookups("categories").load(),
     useTodos().load(),
+    useToday().load(),
   ]);
 }
 </script>

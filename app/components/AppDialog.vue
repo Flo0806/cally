@@ -10,7 +10,7 @@ withDefaults(
     title: string;
     description?: string;
     width?: string;
-    placement?: "center" | "right";
+    placement?: "center" | "right" | "left";
   }>(),
   { width: "520px", placement: "center" },
 );
@@ -118,31 +118,52 @@ function onBackdrop(event: MouseEvent) {
   }
 }
 
-/* Drawer: full height on the right edge, slides in */
-.dialog.right {
-  margin: 0 0 0 auto;
+/* Drawers: full height on one edge, slide in from there */
+.dialog.right,
+.dialog.left {
   height: 100dvh;
   max-height: 100dvh;
   border-radius: 0;
 }
 
-.dialog.right[open] {
-  animation: drawer-in 200ms ease-out;
+.dialog.right {
+  margin: 0 0 0 auto;
 }
 
-@keyframes drawer-in {
+.dialog.left {
+  margin: 0 auto 0 0;
+}
+
+.dialog.right[open] {
+  animation: drawer-in-right 200ms ease-out;
+}
+
+.dialog.left[open] {
+  animation: drawer-in-left 200ms ease-out;
+}
+
+@keyframes drawer-in-right {
   from {
     transform: translateX(40px);
     opacity: 0;
   }
 }
 
-.dialog.right .panel {
+@keyframes drawer-in-left {
+  from {
+    transform: translateX(-40px);
+    opacity: 0;
+  }
+}
+
+.dialog.right .panel,
+.dialog.left .panel {
   height: 100dvh;
   max-height: 100dvh;
 }
 
-.dialog.right .body {
+.dialog.right .body,
+.dialog.left .body {
   flex: 1;
 }
 

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ListChecks, LogOut, Plus, Tags, Users } from "@lucide/vue";
+import { CalendarClock, ListChecks, LogOut, Plus, Tags, Users } from "@lucide/vue";
 import { today } from "~/utils/calendar";
 import { useEventEditor } from "~/composables/useEventEditor";
 import { useTodos } from "~/composables/useTodos";
+import { useToday } from "~/composables/useToday";
 
 // Today's summary lands here in a later step.
 const editor = useEventEditor();
@@ -13,6 +14,9 @@ async function logout() {
   await navigateTo("/login");
 }
 const todos = useTodos();
+const todayData = useToday().data;
+const todayOpen = ref(false);
+const todayCount = computed(() => todayData.value?.events.length ?? 0);
 const membersOpen = ref(false);
 const todosOpen = ref(false);
 const categoriesOpen = ref(false);
@@ -21,6 +25,10 @@ const categoriesOpen = ref(false);
 <template>
   <header class="header">
     <h1 class="brand">cally</h1>
+    <button class="btn btn-icon today" aria-label="Heute" title="Heute" @click="todayOpen = true">
+      <CalendarClock :size="22" />
+      <span v-if="todayCount" class="count tabular">{{ todayCount }}</span>
+    </button>
     <nav class="nav" aria-label="Bereiche">
       <NuxtLink to="/" class="nav-link">Kalender</NuxtLink>
       <NuxtLink to="/news" class="nav-link">Nachrichten</NuxtLink>
@@ -65,6 +73,7 @@ const categoriesOpen = ref(false);
     </div>
 
     <TodoPanel v-model="todosOpen" />
+    <TodayPanel v-model="todayOpen" />
 
     <LookupDialog v-model="membersOpen" kind="members" />
     <LookupDialog v-model="categoriesOpen" kind="categories" />
@@ -116,7 +125,8 @@ const categoriesOpen = ref(false);
   margin-left: auto;
 }
 
-.todos {
+.todos,
+.today {
   position: relative;
 }
 
