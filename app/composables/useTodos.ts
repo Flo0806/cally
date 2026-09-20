@@ -41,5 +41,10 @@ export function useTodos() {
     items.value = items.value.filter((todo) => !todo.done);
   }
 
+  // Changes from other devices
+  useRuntimeHook("cally:changed", (what) => {
+    if (what === "todos") return load(true);
+  });
+
   return { items, open, done, load, add, update, toggle, remove, clearDone };
 }

@@ -1,4 +1,5 @@
 import type { FetchOptions } from "ofetch";
+import { useClientId } from "~/composables/useClientId";
 
 export interface ApiIssue {
   path: string;
@@ -37,8 +38,11 @@ export async function api<T>(url: string, options?: FetchOptions): Promise<T> {
     url: string,
     options?: FetchOptions,
   ) => Promise<unknown>;
+  // Tag our writes, the live stream echoes the tag so this device can ignore itself
+  const clientId = import.meta.client ? useClientId().value : "";
+  const headers = clientId ? { ...options?.headers, "x-cally-client": clientId } : options?.headers;
   try {
-    return (await fetcher(url, options)) as T;
+    return (await fetcher(url, { ...options, headers })) as T;
   } catch (error) {
     throw toApiError(error);
   }

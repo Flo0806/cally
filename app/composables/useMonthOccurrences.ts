@@ -4,7 +4,6 @@ import { dateOf } from "#shared/dates";
 import { monthGrid } from "~/utils/calendar";
 import { useApi } from "~/utils/api";
 import { useEventColor } from "~/composables/useEventColor";
-import { useEvents } from "~/composables/useEvents";
 
 // One line in a day cell. Multi-day occurrences appear on every day they cover,
 // `continues` marks all but the first.
@@ -22,17 +21,21 @@ export async function useMonthOccurrences(month: Ref<Temporal.PlainYearMonth>) {
 
   // Before the await: Nuxt composables need the instance context, which is gone after it
   const colorOf = useEventColor();
-  const { version } = useEvents();
 
   // Exactly the visible grid, refetched when the month changes. Visited months stay cached.
   const key = computed(() => `events:${from.value}:${to.value}`);
-  const { data: occurrences, refresh } = await useApi("/api/events", { key, query: { from, to } });
+  const fetched = useApi("/api/events", { key, query: { from, to } });
+  const { data: occurrences, refresh } = fetched;
 
-  // After a change: reload this view, drop the other cached months so they refetch when shown
-  watch(version, async () => {
+  // Registered before the await below, the Nuxt context is gone after it on the server.
+  // After a change: reload this view, drop the other cached months so they refetch when shown.
+  useRuntimeHook("cally:changed", async (what) => {
+    if (what !== "events") return;
     await refresh();
     clearNuxtData((cached) => cached.startsWith("events:") && cached !== key.value);
   });
+
+  await fetched;
 
   const chipsByDay = computed(() => {
     const map = new Map<string, Chip[]>();

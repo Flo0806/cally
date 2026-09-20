@@ -2,10 +2,14 @@
 import { useLookups } from "~/composables/useLookups";
 import { useTodos } from "~/composables/useTodos";
 import { useToday } from "~/composables/useToday";
+import { useLiveSync } from "~/composables/useLiveSync";
 
 // Without a session only the login page renders, so nothing else is loaded
 const { loggedIn } = useUserSession();
 const authed = computed(() => loggedIn.value || useRuntimeConfig().public.authDisabled === "1");
+
+// Other devices' changes arrive over the live stream
+if (authed.value) useLiveSync();
 
 // Members and categories drive event colors everywhere, todos feed the header count
 if (authed.value) {
