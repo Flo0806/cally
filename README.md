@@ -8,7 +8,8 @@ The goal was simple: a calendar and todo list the whole family can use with a fi
 
 - **Calendar**: month view with color chips, all-day and multi-day events, start and end times, recurring events (daily, weekly, monthly, yearly, with an end date), single occurrences of a series can be removed
 - **Places**: an event can have a location, resolved through Photon (OpenStreetMap). The editor checks the place and shows what it found. The drive time from home comes from OSRM
-- **Heute drawer**: today's events with a "leave at" time, computed from drive time, a buffer and the weather at the destination
+- **Heute drawer**: today's events with a "leave at" time. Drive time comes from TomTom with traffic for the time of arrival (OSRM without traffic as fallback), plus a buffer, the weather at the destination and closures, roadworks or jams along the route
+- **Phone pushes**: "Aufs Handy" sends an event with a Google Maps link to the phones of the people it concerns, through `nuxt-pigeon` and a self hosted ntfy. A task pushes reminders an hour and a quarter hour before leaving
 - **Todos**: a drawer with a simple list, assignable to family members
 - **Family and categories**: members and categories with colors, no user management, no passwords
 - **News**: RSS from a curated list of German sources (tagesschau, heise, Sportschau, mydealz, Google News topics and more) sorted into categories. Each family member picks who is reading, hearts what they like, and their favourite categories move to the top. Read items disappear from "Für dich"
@@ -25,6 +26,8 @@ The goal was simple: a calendar and todo list the whole family can use with a fi
 | Database   | SQLite through Node's built-in `node:sqlite`, plain SQL, a small migration runner |
 | Validation | `valibot`, the same schemas on server and client                                  |
 | Auth       | `nuxt-auth-utils` (Google OAuth, sealed session cookie)                           |
+| Messaging  | `nuxt-pigeon` with an ntfy channel                                                |
+| Geo        | Photon for places, OSRM for plain drive times, TomTom for traffic and incidents   |
 | Icons      | `@lucide/vue`, weather icons hand drawn                                           |
 | Styling    | plain CSS with custom properties, no UI library, self-hosted Figtree              |
 | Tooling    | pnpm, oxlint, oxfmt                                                               |
@@ -50,13 +53,17 @@ cp .env.example .env   # fill in what you need
 pnpm dev
 ```
 
-For local development without a Google client set `NUXT_PUBLIC_AUTH_DISABLED=1`. The weather and the drive times need `NUXT_WEATHER_LATITUDE` and `NUXT_WEATHER_LONGITUDE`, that is home.
+For local development without a Google client set `NUXT_PUBLIC_AUTH_DISABLED=1`. The weather and the drive times need `NUXT_WEATHER_LATITUDE` and `NUXT_WEATHER_LONGITUDE`, that is home. Traffic needs `NUXT_TOMTOM_KEY` (free tier), pushes need an ntfy server and token (`PIGEON_NTFY_*`), and reminders only run with `NUXT_REMINDERS=1`.
 
 Production runs as a container:
 
 ```bash
 docker run -d --name cally -p 9215:3000 -v cally-data:/app/.data --env-file cally.env ghcr.io/flo0806/cally:latest
 ```
+
+## On the tablet
+
+The kitchen tablet runs [Fully Kiosk Browser](https://www.fully-kiosk.com/) pointed at the app: full screen, screen always on, wakes up on motion. Sign in with Google once, the session lasts a year.
 
 ## Status
 

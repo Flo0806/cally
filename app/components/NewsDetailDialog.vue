@@ -78,9 +78,7 @@ async function toggle() {
       >
         <Check :size="20" /> {{ read ? "Gelesen" : "Als gelesen" }}
       </button>
-      <a v-if="item" class="btn" :href="item.link" target="_blank" rel="noopener">
-        Öffnen <ExternalLink :size="18" />
-      </a>
+      <a v-if="item" class="btn" :href="item.link"> Öffnen <ExternalLink :size="18" /> </a>
     </template>
   </AppDialog>
 </template>

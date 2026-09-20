@@ -1,5 +1,15 @@
 <script setup lang="ts">
-import { CalendarClock, ListChecks, LogOut, Plus, Tags, Users } from "@lucide/vue";
+import {
+  CalendarClock,
+  CalendarDays,
+  ListChecks,
+  LogOut,
+  Menu,
+  Newspaper,
+  Plus,
+  Tags,
+  Users,
+} from "@lucide/vue";
 import { today } from "~/utils/calendar";
 import { useEventEditor } from "~/composables/useEventEditor";
 import { useTodos } from "~/composables/useTodos";
@@ -19,6 +29,7 @@ const todayOpen = ref(false);
 const todayCount = computed(() => todayData.value?.events.length ?? 0);
 const membersOpen = ref(false);
 const todosOpen = ref(false);
+const menuOpen = ref(false);
 const categoriesOpen = ref(false);
 </script>
 
@@ -30,23 +41,39 @@ const categoriesOpen = ref(false);
       <span v-if="todayCount" class="count tabular">{{ todayCount }}</span>
     </button>
     <nav class="nav" aria-label="Bereiche">
-      <NuxtLink to="/" class="nav-link">Kalender</NuxtLink>
-      <NuxtLink to="/news" class="nav-link">Nachrichten</NuxtLink>
+      <NuxtLink to="/" class="nav-link" title="Kalender">
+        <CalendarDays :size="20" class="nav-icon" />
+        <span class="nav-text">Kalender</span>
+      </NuxtLink>
+      <NuxtLink to="/news" class="nav-link" title="Nachrichten">
+        <Newspaper :size="20" class="nav-icon" />
+        <span class="nav-text">Nachrichten</span>
+      </NuxtLink>
     </nav>
     <HeaderWeather />
     <div class="actions">
       <button
-        class="btn btn-icon"
+        class="btn btn-icon wide-only"
         aria-label="Kategorien"
         title="Kategorien"
         @click="categoriesOpen = true"
       >
         <Tags :size="22" />
       </button>
-      <button class="btn btn-icon" aria-label="Familie" title="Familie" @click="membersOpen = true">
+      <button
+        class="btn btn-icon wide-only"
+        aria-label="Familie"
+        title="Familie"
+        @click="membersOpen = true"
+      >
         <Users :size="22" />
       </button>
-      <button class="btn btn-icon todos" aria-label="Todos" title="Todos" @click="todosOpen = true">
+      <button
+        class="btn btn-icon wide-only todos"
+        aria-label="Todos"
+        title="Todos"
+        @click="todosOpen = true"
+      >
         <ListChecks :size="22" />
         <span v-if="todos.open.value.length" class="count tabular">{{
           todos.open.value.length
@@ -62,7 +89,7 @@ const categoriesOpen = ref(false);
       </button>
       <button
         v-if="session.loggedIn.value"
-        class="btn btn-ghost btn-icon logout"
+        class="btn btn-ghost btn-icon logout wide-only"
         type="button"
         aria-label="Abmelden"
         title="Abmelden"
@@ -70,7 +97,28 @@ const categoriesOpen = ref(false);
       >
         <LogOut :size="20" />
       </button>
+      <button
+        class="btn btn-icon narrow-only"
+        aria-label="Menü"
+        title="Menü"
+        @click="menuOpen = true"
+      >
+        <Menu :size="22" />
+        <span v-if="todos.open.value.length" class="count tabular">{{
+          todos.open.value.length
+        }}</span>
+      </button>
     </div>
+
+    <HeaderMenu
+      v-model="menuOpen"
+      :todo-count="todos.open.value.length"
+      :logged-in="session.loggedIn.value"
+      @todos="todosOpen = true"
+      @members="membersOpen = true"
+      @categories="categoriesOpen = true"
+      @logout="logout"
+    />
 
     <TodoPanel v-model="todosOpen" />
     <TodayPanel v-model="todayOpen" />
@@ -132,6 +180,58 @@ const categoriesOpen = ref(false);
 
 .logout {
   margin-left: var(--space-2);
+}
+
+.nav-icon {
+  display: none;
+}
+
+.narrow-only {
+  display: none;
+  position: relative;
+}
+
+/* Below the tablet width the secondary actions move into the menu */
+@media (max-width: 1279px) {
+  .header {
+    gap: var(--space-3);
+    padding: 0 var(--space-4);
+  }
+
+  .wide-only {
+    display: none;
+  }
+
+  .narrow-only {
+    display: inline-flex;
+  }
+}
+
+/* Phone: icons only, the brand shrinks to its initial */
+@media (max-width: 639px) {
+  .header {
+    height: 64px;
+    gap: var(--space-2);
+    padding: 0 var(--space-3);
+  }
+
+  .brand {
+    width: 1ch;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .nav-text {
+    display: none;
+  }
+
+  .nav-icon {
+    display: block;
+  }
+
+  .nav-link {
+    padding: 0 var(--space-3);
+  }
 }
 
 .count {

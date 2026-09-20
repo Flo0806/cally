@@ -59,6 +59,7 @@
 
 /* Square button for a single icon, e.g. month navigation or close */
 .btn-icon {
+  flex: none;
   width: var(--touch);
   padding: 0;
   border-radius: 50%;
