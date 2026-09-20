@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { Car, ChevronDown, MapPin, Umbrella } from "@lucide/vue";
+import { Car, ChevronDown, Construction, MapPin, TrafficCone, Umbrella } from "@lucide/vue";
 import { Temporal } from "temporal-polyfill";
 import type { TodayEvent } from "#shared/types";
-import { formatTime } from "~/utils/calendar";
+import { formatDuration, formatTime } from "~/utils/calendar";
 import { weatherInfo } from "~/utils/weather";
 import { useEventColor } from "~/composables/useEventColor";
 import { useLookups } from "~/composables/useLookups";
@@ -43,6 +43,25 @@ const weather = computed(() =>
   props.event.weather ? weatherInfo(props.event.weather.code) : null,
 );
 
+// One line, joined here: Vue condenses whitespace between spans and eats the separators
+const travelLine = computed(() => {
+  const e = props.event;
+  if (e.travelMinutes === null) return "";
+  const parts = [`${e.travelMinutes} Min + ${e.bufferMinutes} Min Puffer`];
+  if (e.travelSource === "tomtom") {
+    parts.push(
+      e.trafficDelayMinutes
+        ? `mit Verkehr, davon ${e.trafficDelayMinutes} Min Stau`
+        : "mit Verkehr",
+    );
+  } else {
+    parts.push("ohne Verkehrslage");
+  }
+  return parts.join(" · ");
+});
+
+const worstIncident = computed(() => props.event.incidents[0] ?? null);
+
 function minutesUntil(dateTime: string): number {
   return Math.round(
     Temporal.PlainDateTime.from(dateTime)
@@ -63,7 +82,18 @@ function minutesUntil(dateTime: string): number {
         </span>
         <span v-if="departure" class="depart" :class="{ urgent: departure.urgent }">
           <Car :size="16" /> {{ departure.label }}
-          <span v-if="event.rainWarning" class="depart-rain"><Umbrella :size="14" /> Regen</span>
+          <span v-if="event.rainWarning" class="depart-pill"><Umbrella :size="14" /> Regen</span>
+          <span v-if="(event.trafficDelayMinutes ?? 0) >= 5" class="depart-pill traffic">
+            <TrafficCone :size="14" /> +{{ event.trafficDelayMinutes }} Min Verkehr
+          </span>
+          <span
+            v-if="worstIncident"
+            class="depart-pill"
+            :class="{ traffic: worstIncident.severity !== 'info' }"
+          >
+            <Construction :size="14" />
+            {{ worstIncident.kind }}{{ worstIncident.road ? ` ${worstIncident.road}` : "" }}
+          </span>
         </span>
       </span>
       <ChevronDown :size="20" class="chevron" />
@@ -71,16 +101,35 @@ function minutesUntil(dateTime: string): number {
 
     <div v-if="open" class="details">
       <dl class="facts">
-        <template v-if="event.travelMinutes !== null">
+        <template v-if="travelLine">
           <dt>Fahrzeit</dt>
+          <dd>{{ travelLine }}</dd>
+        </template>
+        <template v-if="event.incidents.length">
+          <dt>Strecke</dt>
           <dd>
-            {{ event.travelMinutes }} Min
-            <span class="text-muted">+ {{ event.bufferMinutes }} Min Puffer</span>
+            <ul class="incidents">
+              <li
+                v-for="(incident, i) in event.incidents"
+                :key="i"
+                class="incident"
+                :class="incident.severity"
+              >
+                <strong>{{ incident.kind }}</strong>
+                <span v-if="incident.road"> {{ incident.road }}</span>
+                <span v-if="incident.from && incident.to" class="text-muted">
+                  , {{ incident.from }} bis {{ incident.to }}
+                </span>
+                <span v-if="incident.delayMinutes" class="text-muted">
+                  , +{{ incident.delayMinutes }} Min
+                </span>
+              </li>
+            </ul>
           </dd>
         </template>
         <template v-if="departure && !departure.urgent && event.departAt">
           <dt>Abfahrt</dt>
-          <dd>in {{ minutesUntil(event.departAt) }} Min</dd>
+          <dd>in {{ formatDuration(minutesUntil(event.departAt)) }}</dd>
         </template>
         <template v-if="event.weather && weather">
           <dt>Wetter dort</dt>
@@ -191,7 +240,7 @@ function minutesUntil(dateTime: string): number {
   color: var(--danger);
 }
 
-.depart-rain {
+.depart-pill {
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -200,6 +249,11 @@ function minutesUntil(dateTime: string): number {
   background: var(--accent-soft);
   font-size: var(--text-sm);
   font-weight: 600;
+}
+
+.depart-pill.traffic {
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .chevron {
@@ -233,7 +287,9 @@ function minutesUntil(dateTime: string): number {
 }
 
 .facts dd {
+  min-width: 0;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .weather {
@@ -263,5 +319,19 @@ function minutesUntil(dateTime: string): number {
 
 .notes {
   white-space: pre-wrap;
+}
+
+.incidents {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.incident.closure strong {
+  color: var(--danger);
+}
+
+.incident.warning strong {
+  color: var(--event-amber);
 }
 </style>

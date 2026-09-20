@@ -25,6 +25,8 @@ export default defineNuxtConfig({
       latitude: "",
       longitude: "",
     },
+    // TomTom Routing API key, drive times with traffic. Without it OSRM times are used.
+    tomtomKey: "",
   },
   css: ["~/assets/css/main.css", "~/assets/css/components.css"],
   app: {

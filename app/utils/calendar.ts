@@ -76,3 +76,11 @@ export function formatRelative(iso: string): string {
   if (days < 7) return `vor ${days} Tagen`;
   return formatShortDate(then.toZonedDateTimeISO(TIME_ZONE).toPlainDate().toString());
 }
+
+// "25 Min", "5 Std 46 Min", "2 Std"
+export function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours === 0) return `${rest} Min`;
+  return rest === 0 ? `${hours} Std` : `${hours} Std ${rest} Min`;
+}

@@ -63,6 +63,21 @@ export interface TodayEvent extends Occurrence {
   bufferMinutes: number;
   rainWarning: boolean;
   weather: SpotWeather | null;
+  // Traffic aware drive time for this event's start, replaces travelMinutes when available
+  trafficDelayMinutes: number | null;
+  travelSource: "tomtom" | "osrm" | null;
+  incidents: RouteIncident[];
+}
+
+// A closure, roadworks or hazard on the way there
+export interface RouteIncident {
+  kind: string;
+  severity: "closure" | "warning" | "info";
+  road: string | null;
+  from: string | null;
+  to: string | null;
+  description: string;
+  delayMinutes: number | null;
 }
 
 export interface Today {
