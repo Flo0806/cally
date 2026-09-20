@@ -3,6 +3,8 @@ import type { CalendarEvent } from "#shared/types";
 import type { EventInput } from "#shared/schemas";
 import { nowIso } from "#shared/dates";
 import { useDb } from "../utils/db";
+import { driveMinutes } from "../geo/routing";
+import { homeCoords } from "../geo/home";
 
 type Row = Record<string, unknown>;
 
@@ -18,6 +20,10 @@ function toEvent(row: Row, memberIds: string[]): CalendarEvent {
     exdates: JSON.parse(String(row.exdates)) as string[],
     categoryId: row.category_id === null ? null : String(row.category_id),
     memberIds,
+    location: String(row.location ?? ""),
+    locationLat: row.location_lat === null ? null : Number(row.location_lat),
+    locationLon: row.location_lon === null ? null : Number(row.location_lon),
+    travelMinutes: row.travel_minutes === null ? null : Number(row.travel_minutes),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -68,23 +74,52 @@ function isForeignKeyError(error: unknown): boolean {
   return String((error as Error)?.message).includes("FOREIGN KEY");
 }
 
+// Drive time from home for the coordinates the editor resolved. Kept from the previous
+// version when the place did not move, so a title edit costs no routing request.
+async function travelMinutesFor(
+  input: EventInput,
+  previous: CalendarEvent | null,
+): Promise<number | null> {
+  if (input.locationLat === null || input.locationLon === null) return null;
+  if (
+    previous &&
+    previous.locationLat === input.locationLat &&
+    previous.locationLon === input.locationLon
+  ) {
+    return previous.travelMinutes;
+  }
+  const home = homeCoords();
+  if (!home) return null;
+  try {
+    return await driveMinutes(home, { lat: input.locationLat, lon: input.locationLon });
+  } catch (error) {
+    console.warn(`[geo] routing failed: ${String(error)}`);
+    return null;
+  }
+}
+
 async function writeEvent(
   id: string,
   input: EventInput,
   createdAt: string,
+  previous: CalendarEvent | null,
 ): Promise<CalendarEvent> {
+  const travelMinutes = await travelMinutesFor(input, previous);
   const db = await useDb();
   const updatedAt = nowIso();
   await db.exec("BEGIN");
   try {
     await db
       .prepare(
-        `INSERT INTO events (id, title, notes, all_day, start, end, rrule, exdates, category_id, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `INSERT INTO events (id, title, notes, all_day, start, end, rrule, exdates, category_id,
+           location, location_lat, location_lon, travel_minutes, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET
            title = excluded.title, notes = excluded.notes, all_day = excluded.all_day,
            start = excluded.start, end = excluded.end, rrule = excluded.rrule,
            exdates = excluded.exdates, category_id = excluded.category_id,
+           location = excluded.location, location_lat = excluded.location_lat,
+           location_lon = excluded.location_lon, travel_minutes = excluded.travel_minutes,
            updated_at = excluded.updated_at`,
       )
       .run(
@@ -97,6 +132,10 @@ async function writeEvent(
         input.rrule,
         JSON.stringify(input.exdates),
         input.categoryId,
+        input.location,
+        input.locationLat,
+        input.locationLon,
+        travelMinutes,
         createdAt,
         updatedAt,
       );
@@ -121,12 +160,12 @@ async function writeEvent(
 }
 
 export function createEvent(input: EventInput): Promise<CalendarEvent> {
-  return writeEvent(crypto.randomUUID(), input, nowIso());
+  return writeEvent(crypto.randomUUID(), input, nowIso(), null);
 }
 
 export async function updateEvent(id: string, input: EventInput): Promise<CalendarEvent> {
   const current = await getEvent(id);
-  return writeEvent(id, input, current.createdAt);
+  return writeEvent(id, input, current.createdAt, current);
 }
 
 export async function deleteEvent(id: string): Promise<void> {

@@ -32,6 +32,10 @@ function toOccurrence(
     categoryId: event.categoryId,
     memberIds: event.memberIds,
     recurring,
+    location: event.location,
+    locationLat: event.locationLat,
+    locationLon: event.locationLon,
+    travelMinutes: event.travelMinutes,
   };
 }
 

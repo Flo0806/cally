@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { MapPin } from "@lucide/vue";
 import type { Occurrence } from "#shared/types";
 import { dateOf } from "#shared/dates";
 import { formatLongDate, formatShortDate, formatTime } from "~/utils/calendar";
@@ -48,7 +49,16 @@ function colorVar(occurrence: Occurrence): string {
               when(occurrence).sub
             }}</span>
           </span>
-          <span class="row-title">{{ occurrence.title }}</span>
+          <span class="row-text">
+            <span class="row-title">{{ occurrence.title }}</span>
+            <span v-if="occurrence.location" class="row-location">
+              <MapPin :size="14" />
+              {{ occurrence.location }}
+              <span v-if="occurrence.travelMinutes !== null" class="tabular">
+                · ~{{ occurrence.travelMinutes }} Min
+              </span>
+            </span>
+          </span>
           <svg
             v-if="occurrence.recurring"
             class="repeat"
@@ -126,11 +136,28 @@ function colorVar(occurrence: Occurrence): string {
   color: var(--ink-muted);
 }
 
-.row-title {
+.row-text {
+  display: flex;
   flex: 1;
+  flex-direction: column;
   min-width: 0;
+  line-height: 1.25;
+}
+
+.row-title {
   font-size: var(--text-lg);
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import { Loader2 } from "@lucide/vue";
 import * as v from "valibot";
 import { Temporal } from "temporal-polyfill";
 import { eventInput } from "#shared/schemas";
 import { dateOf } from "#shared/dates";
 import { REPEAT_OPTIONS, buildRrule, parseRrule, type Repeat } from "#shared/rrule";
+import type { Place } from "#shared/types";
+import type { PlaceStatus } from "~/components/PlaceInput.vue";
 import { ApiError } from "~/utils/api";
 import { useEventEditor } from "~/composables/useEventEditor";
 import { useEvents } from "~/composables/useEvents";
@@ -45,7 +48,11 @@ const form = reactive({
   until: "",
   categoryId: null as string | null,
   memberIds: [] as string[],
+  location: "",
+  place: null as Place | null,
+  placeStatus: "empty" as PlaceStatus,
 });
+const placeInput = useTemplateRef<{ check: () => Promise<boolean> }>("placeInput");
 // Preserved from a loaded event: a rule the form cannot express, and the removed occurrences
 let customRrule: string | null = null;
 let exdates: string[] = [];
@@ -79,6 +86,9 @@ function reset(date: string) {
     until: "",
     categoryId: null,
     memberIds: [],
+    location: "",
+    place: null,
+    placeStatus: "empty",
   });
   customRrule = null;
   exdates = [];
@@ -105,6 +115,12 @@ async function loadEvent(id: string) {
       until: rule.until ?? "",
       categoryId: event.categoryId,
       memberIds: [...event.memberIds],
+      location: event.location,
+      place:
+        event.locationLat !== null && event.locationLon !== null
+          ? { label: event.location, lat: event.locationLat, lon: event.locationLon }
+          : null,
+      placeStatus: event.locationLat !== null ? "valid" : event.location ? "unchecked" : "empty",
     });
     customRrule = rule.repeat === "custom" ? event.rrule : null;
     exdates = event.exdates;
@@ -166,6 +182,9 @@ function toInput() {
     exdates,
     categoryId: form.categoryId,
     memberIds: form.memberIds,
+    location: form.location,
+    locationLat: form.place?.lat ?? null,
+    locationLon: form.place?.lon ?? null,
   };
 }
 
@@ -176,6 +195,10 @@ function showIssues(issues: { path: string; message: string }[]) {
 async function save() {
   for (const key of Object.keys(errors)) delete errors[key];
   formError.value = "";
+
+  // The place must resolve before anything else is validated, a wrong place is worse than an error.
+  // The field shows its own red mark, no second message needed.
+  if (!(await placeInput.value?.check())) return;
 
   const parsed = v.safeParse(eventInput, toInput());
   if (!parsed.success) {
@@ -271,6 +294,18 @@ async function destroy(scope: "one" | "all") {
           </div>
           <p v-if="errors.end" class="error">{{ errors.end }}</p>
         </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label" :for="`${formId}-location`">Ort</label>
+        <PlaceInput
+          :id="`${formId}-location`"
+          ref="placeInput"
+          v-model="form.location"
+          v-model:place="form.place"
+          v-model:status="form.placeStatus"
+        />
+        <p v-if="errors.location" class="error">{{ errors.location }}</p>
       </div>
 
       <div class="field">
@@ -395,7 +430,13 @@ async function destroy(scope: "one" | "all") {
       <button class="btn btn-ghost" type="button" :disabled="busy" @click="close()">
         Abbrechen
       </button>
-      <button class="btn btn-primary" type="submit" :form="formId" :disabled="busy || loading">
+      <button
+        class="btn btn-primary"
+        type="submit"
+        :form="formId"
+        :disabled="busy || loading || form.placeStatus === 'checking'"
+      >
+        <Loader2 v-if="busy || form.placeStatus === 'checking'" :size="20" class="spin" />
         {{ editing ? "Speichern" : "Anlegen" }}
       </button>
     </template>

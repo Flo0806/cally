@@ -77,4 +77,15 @@ export const migrations: Migration[] = [
       )`,
     ],
   },
+  {
+    version: 3,
+    name: "event-location",
+    sql: [
+      // Free text as typed, coordinates and drive time from home resolved on save
+      `ALTER TABLE events ADD COLUMN location TEXT NOT NULL DEFAULT ''`,
+      `ALTER TABLE events ADD COLUMN location_lat REAL`,
+      `ALTER TABLE events ADD COLUMN location_lon REAL`,
+      `ALTER TABLE events ADD COLUMN travel_minutes INTEGER`,
+    ],
+  },
 ];

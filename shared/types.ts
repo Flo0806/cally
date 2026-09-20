@@ -23,6 +23,10 @@ export interface CalendarEvent {
   exdates: string[];
   categoryId: string | null;
   memberIds: string[];
+  location: string;
+  locationLat: number | null;
+  locationLon: number | null;
+  travelMinutes: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -38,6 +42,16 @@ export interface Occurrence {
   categoryId: string | null;
   memberIds: string[];
   recurring: boolean;
+  location: string;
+  locationLat: number | null;
+  locationLon: number | null;
+  travelMinutes: number | null;
+}
+
+export interface Place {
+  label: string;
+  lat: number;
+  lon: number;
 }
 
 export interface Todo {

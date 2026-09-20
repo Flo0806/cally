@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { MapPin } from "@lucide/vue";
 import { Temporal } from "temporal-polyfill";
 import { WEEKDAY_LABELS, formatMonth, formatTime, today } from "~/utils/calendar";
 import { useMonthOccurrences } from "~/composables/useMonthOccurrences";
@@ -78,6 +79,7 @@ function goToday() {
               {{ formatTime(chip.occurrence.start) }}
             </span>
             <span class="chip-title">{{ chip.occurrence.title }}</span>
+            <MapPin v-if="chip.occurrence.location" :size="12" class="chip-pin" />
           </li>
         </ul>
       </div>
@@ -253,7 +255,14 @@ function goToday() {
 }
 
 .chip-title {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.chip-pin {
+  flex: none;
+  opacity: 0.7;
 }
 </style>

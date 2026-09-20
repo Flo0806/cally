@@ -42,7 +42,33 @@ export const eventInput = v.pipe(
     exdates: v.optional(v.array(v.string()), []),
     categoryId: v.optional(v.nullable(id), null),
     memberIds: v.optional(v.array(id), []),
+    location: v.optional(
+      v.pipe(v.string(), v.trim(), v.maxLength(200, "Ort ist zu lang (max. 200 Zeichen)")),
+      "",
+    ),
+    // Resolved in the editor where the user can see the match, never guessed on the server
+    locationLat: v.optional(v.nullable(v.pipe(v.number(), v.minValue(-90), v.maxValue(90))), null),
+    locationLon: v.optional(
+      v.nullable(v.pipe(v.number(), v.minValue(-180), v.maxValue(180))),
+      null,
+    ),
   }),
+  v.forward(
+    v.check(
+      ({ locationLat, locationLon }) => (locationLat === null) === (locationLon === null),
+      "Koordinaten unvollständig",
+    ),
+    ["locationLat"],
+  ),
+  // A place is either resolved or empty. Free text without coordinates would look like a
+  // place and silently have no drive time or weather, which is worse than an error.
+  v.forward(
+    v.check(
+      ({ location, locationLat }) => !!location === (locationLat !== null),
+      "Ort nicht gefunden",
+    ),
+    ["location"],
+  ),
   v.forward(
     v.check(
       ({ allDay, start }) => (allDay ? isDateString(start) : isDateTimeString(start)),
