@@ -1,6 +1,7 @@
 // cally service worker. Step 1: make the app installable and keep the shell available.
 // Hashed build assets are immutable, so cache first is safe; everything else goes to the network.
-const SHELL = "cally-shell-v1";
+// The cache is per release so fonts and icons (not hashed) and stale chunks go with the old one.
+const SHELL = "cally-shell-__VERSION__";
 const ASSET = /^\/(_nuxt|fonts|icons)\//;
 
 self.addEventListener("install", () => self.skipWaiting());
