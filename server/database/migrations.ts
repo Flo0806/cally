@@ -96,4 +96,17 @@ export const migrations: Migration[] = [
       `ALTER TABLE members ADD COLUMN ntfy_topic TEXT`,
     ],
   },
+  {
+    version: 5,
+    name: "reminders-sent",
+    sql: [
+      // Which reminder went out for which occurrence, so a restart never sends twice
+      `CREATE TABLE reminders_sent (
+        occurrence_key TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        sent_at TEXT NOT NULL,
+        PRIMARY KEY (occurrence_key, kind)
+      )`,
+    ],
+  },
 ];

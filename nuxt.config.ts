@@ -13,6 +13,7 @@ export default defineNuxtConfig({
     experimental: { database: true, tasks: true },
     scheduledTasks: {
       "*/30 * * * *": "news:pull",
+      "*/5 * * * *": "reminders:push",
     },
   },
   runtimeConfig: {
@@ -33,6 +34,8 @@ export default defineNuxtConfig({
     },
     // TomTom Routing API key, drive times with traffic. Without it OSRM times are used.
     tomtomKey: "",
+    // "1" enables the phone reminders task. Off in local dev so tests do not page anyone.
+    reminders: "",
   },
   css: ["~/assets/css/main.css", "~/assets/css/components.css"],
   app: {
