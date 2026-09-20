@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Clock } from "@lucide/vue";
 import { Temporal } from "temporal-polyfill";
 
 // Our own time picker: the WebView's system dialog clips its buttons in landscape.
@@ -40,6 +41,7 @@ function apply() {
 
 <template>
   <button :id="id" class="input time-field tabular" type="button" :aria-label="label" @click="show">
+    <Clock :size="18" class="field-icon" />
     {{ model || "–:–" }}
   </button>
 
@@ -89,11 +91,19 @@ function apply() {
 
 <style scoped>
 .time-field {
-  width: 112px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 120px;
   flex: none;
   font-weight: 600;
-  text-align: center;
   cursor: pointer;
+}
+
+.field-icon {
+  flex: none;
+  color: var(--ink-faint);
 }
 
 .preview {

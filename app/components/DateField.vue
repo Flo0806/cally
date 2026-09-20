@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronLeft, ChevronRight } from "@lucide/vue";
+import { CalendarDays, ChevronLeft, ChevronRight } from "@lucide/vue";
 import { Temporal } from "temporal-polyfill";
 import { WEEKDAY_LABELS, formatMonth, monthGrid, today } from "~/utils/calendar";
 
@@ -46,7 +46,8 @@ function pickToday() {
 
 <template>
   <button :id="id" class="input date-field" type="button" :aria-label="label" @click="show">
-    {{ display || placeholder || "Datum wählen" }}
+    <CalendarDays :size="20" class="field-icon" />
+    <span class="field-text">{{ display || placeholder || "Datum wählen" }}</span>
   </button>
 
   <AppDialog v-model="open" :title="label ?? 'Datum'" width="520px">
@@ -90,15 +91,27 @@ function pickToday() {
 
 <style scoped>
 .date-field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   flex: 1;
   min-width: 0;
   width: auto;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  white-space: nowrap;
+}
+
+.field-icon {
+  flex: none;
+  color: var(--ink-faint);
+}
+
+.field-text {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .toolbar {
