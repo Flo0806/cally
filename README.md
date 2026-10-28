@@ -54,6 +54,8 @@ pnpm dev
 
 For local development without a Google client set `NUXT_PUBLIC_AUTH_DISABLED=1`. The weather and the drive times need `NUXT_WEATHER_LATITUDE` and `NUXT_WEATHER_LONGITUDE`, that is home. Traffic needs `NUXT_TOMTOM_KEY` (free tier), pushes need an ntfy server and token (`PIGEON_NTFY_*`), and reminders only run with `NUXT_REMINDERS=1`.
 
+`pnpm test` runs against the dev server (`CALLY_URL`, default `http://localhost:3005`). It writes its own agent keys and events into `.data/db.sqlite` and removes exactly those again.
+
 Production runs as a container:
 
 ```bash
