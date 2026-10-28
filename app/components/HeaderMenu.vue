@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ListChecks, LogOut, Tags, Users } from "@lucide/vue";
+import { ListChecks, LogOut, Settings, Tags, Users } from "@lucide/vue";
 
 // Below 1280px the header actions live here. A native popover: top layer, light dismiss and
 // escape come from the browser, it sits under the menu button at the header's right edge.
 const open = defineModel<boolean>({ required: true });
 defineProps<{ todoCount: number; loggedIn: boolean }>();
-type Action = "todos" | "members" | "categories" | "logout";
+type Action = "todos" | "members" | "categories" | "settings" | "logout";
 const emit = defineEmits<(event: Action) => void>();
 
 const pop = useTemplateRef<HTMLElement>("pop");
@@ -48,6 +48,12 @@ function pick(action: Action) {
         <button class="row" type="button" @click="pick('categories')">
           <Tags :size="22" />
           <span>Kategorien</span>
+        </button>
+      </li>
+      <li>
+        <button class="row" type="button" @click="pick('settings')">
+          <Settings :size="22" />
+          <span>Einstellungen</span>
         </button>
       </li>
       <li v-if="loggedIn">
