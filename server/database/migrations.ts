@@ -125,4 +125,14 @@ export const migrations: Migration[] = [
       )`,
     ],
   },
+  {
+    version: 7,
+    name: "event-origin",
+    sql: [
+      // Set once on insert by an agent, edits in the app keep them. Keys are never deleted.
+      `ALTER TABLE events ADD COLUMN agent_key_id TEXT REFERENCES agent_keys (id)`,
+      `ALTER TABLE events ADD COLUMN source_ref TEXT`,
+      `CREATE INDEX events_source_ref ON events (source_ref)`,
+    ],
+  },
 ];

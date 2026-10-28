@@ -5,7 +5,7 @@ import { createAgentEvent, eventCreateBody } from "../../agent/events";
 import { parseAgentInput } from "../../agent/validate";
 import { notifyChange } from "../../live/bus";
 
-export default defineAgentHandler(async (event) => {
+export default defineAgentHandler(async (event, agent) => {
   const body = await readBody(event).catch(() => {
     throw new AgentError(400, {
       code: "validation_failed",
@@ -13,7 +13,7 @@ export default defineAgentHandler(async (event) => {
       hint: 'Send a JSON object with "Content-Type: application/json".',
     });
   });
-  const result = await createAgentEvent(parseAgentInput(eventCreateBody, body));
+  const result = await createAgentEvent(parseAgentInput(eventCreateBody, body), agent);
   notifyChange(event, "events");
   setResponseStatus(event, 201);
   return result;

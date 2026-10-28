@@ -2,12 +2,21 @@ import { Temporal } from "temporal-polyfill";
 import * as v from "valibot";
 import { isDateString, isDateTimeString, toDateTimeString } from "#shared/dates";
 import { expandEvents } from "#shared/occurrences";
-import { createEvent, listEventsInRange } from "../database/events";
+import type { CalendarEvent } from "#shared/types";
+import { createEvent, getEvent, listEventsInRange } from "../database/events";
 import { listLookups } from "../database/lookups";
+import type { AgentContext } from "./door";
 import { AgentError } from "./errors";
 
 export const MAX_SEARCH_DAYS = 366;
 export const MAX_SEARCH_RESULTS = 200;
+
+const sourceRef = v.pipe(
+  v.string("Must be a string."),
+  v.trim(),
+  v.minLength(1, "Must not be empty."),
+  v.maxLength(300, "At most 300 characters."),
+);
 
 const date = v.pipe(
   v.string("Required, as YYYY-MM-DD."),
@@ -35,6 +44,7 @@ export const eventSearchQuery = v.pipe(
         ),
       ),
     ),
+    sourceRef: v.optional(sourceRef),
   }),
   // Only judged once both are dates, a broken one already has its own issue
   v.forward(
@@ -54,7 +64,7 @@ export const eventSearchQuery = v.pipe(
 
 export type EventSearchQuery = v.InferOutput<typeof eventSearchQuery>;
 
-export interface AgentOccurrence {
+export interface AgentEvent {
   eventId: string;
   title: string;
   allDay: boolean;
@@ -64,6 +74,29 @@ export interface AgentOccurrence {
   members: { id: string; name: string }[];
   location: string;
   notes: string;
+  sourceRef: string | null;
+  createdByYou: boolean;
+}
+
+// The one shape an agent sees an event in, from search, lookup and create alike
+function toAgentEvent(
+  event: CalendarEvent,
+  names: Map<string, string>,
+  agent: AgentContext,
+): AgentEvent {
+  return {
+    eventId: event.id,
+    title: event.title,
+    allDay: event.allDay,
+    start: event.start,
+    end: event.end,
+    recurring: event.rrule !== null,
+    members: event.memberIds.map((id) => ({ id, name: names.get(id) ?? "" })),
+    location: event.location,
+    notes: event.notes,
+    sourceRef: event.sourceRef,
+    createdByYou: event.agentKeyId === agent.id,
+  };
 }
 
 // Names by id, and the check that every id the agent sent exists
@@ -81,7 +114,10 @@ async function memberNames(ids: string[] = []): Promise<Map<string, string>> {
   return names;
 }
 
-export async function searchOccurrences({ from, to, q, memberIds }: EventSearchQuery) {
+export async function searchOccurrences(
+  { from, to, q, memberIds, sourceRef }: EventSearchQuery,
+  agent: AgentContext,
+) {
   const [events, names] = await Promise.all([listEventsInRange(from, to), memberNames(memberIds)]);
 
   const needle = q?.toLocaleLowerCase("de");
@@ -91,9 +127,10 @@ export async function searchOccurrences({ from, to, q, memberIds }: EventSearchQ
       (!needle ||
         [event.title, event.notes, event.location].some((text) =>
           text.toLocaleLowerCase("de").includes(needle),
-        )),
+        )) &&
+      (!sourceRef || event.sourceRef === sourceRef),
   );
-  const notes = new Map(matching.map((event) => [event.id, event.notes]));
+  const byId = new Map(matching.map((event) => [event.id, event]));
 
   const occurrences = expandEvents(matching, from, to);
   return {
@@ -101,16 +138,11 @@ export async function searchOccurrences({ from, to, q, memberIds }: EventSearchQ
     to,
     total: occurrences.length,
     truncated: occurrences.length > MAX_SEARCH_RESULTS,
-    occurrences: occurrences.slice(0, MAX_SEARCH_RESULTS).map((o): AgentOccurrence => ({
-      eventId: o.eventId,
-      title: o.title,
-      allDay: o.allDay,
+    // A recurring event shows once per date, with that date's start and end
+    occurrences: occurrences.slice(0, MAX_SEARCH_RESULTS).map((o) => ({
+      ...toAgentEvent(byId.get(o.eventId)!, names, agent),
       start: o.start,
       end: o.end,
-      recurring: o.recurring,
-      members: o.memberIds.map((id) => ({ id, name: names.get(id) ?? "" })),
-      location: o.location,
-      notes: notes.get(o.eventId) ?? "",
     })),
   };
 }
@@ -146,6 +178,7 @@ export const eventCreateBody = v.pipe(
       ),
       "",
     ),
+    sourceRef: v.optional(sourceRef),
   }),
   v.forward(
     v.check(
@@ -173,7 +206,22 @@ export const eventCreateBody = v.pipe(
 
 export type EventCreateBody = v.InferOutput<typeof eventCreateBody>;
 
-export async function createAgentEvent(body: EventCreateBody) {
+export async function getAgentEvent(id: string, agent: AgentContext): Promise<AgentEvent> {
+  const [event, names] = await Promise.all([
+    getEvent(id).catch((error: { statusCode?: number }) => {
+      if (error.statusCode !== 404) throw error;
+      throw new AgentError(404, {
+        code: "not_found",
+        message: `There is no event with id ${id}.`,
+        hint: "Take event ids from GET /api/agent/events.",
+      });
+    }),
+    memberNames(),
+  ]);
+  return toAgentEvent(event, names, agent);
+}
+
+export async function createAgentEvent(body: EventCreateBody, agent: AgentContext) {
   const names = await memberNames(body.memberIds);
   const end =
     body.end ??
@@ -183,20 +231,23 @@ export async function createAgentEvent(body: EventCreateBody) {
           Temporal.PlainDateTime.from(body.start).add({ hours: DEFAULT_TIMED_HOURS }),
         ));
 
-  const created = await createEvent({
-    title: body.title,
-    notes: body.notes,
-    allDay: body.allDay,
-    start: body.start,
-    end,
-    rrule: null,
-    exdates: [],
-    categoryId: null,
-    memberIds: body.memberIds,
-    location: "",
-    locationLat: null,
-    locationLon: null,
-  });
+  const created = await createEvent(
+    {
+      title: body.title,
+      notes: body.notes,
+      allDay: body.allDay,
+      start: body.start,
+      end,
+      rrule: null,
+      exdates: [],
+      categoryId: null,
+      memberIds: body.memberIds,
+      location: "",
+      locationLat: null,
+      locationLon: null,
+    },
+    { agentKeyId: agent.id, sourceRef: body.sourceRef ?? null },
+  );
 
   const who = created.memberIds.map((id) => names.get(id)).join(", ");
   const when =
@@ -204,15 +255,7 @@ export async function createAgentEvent(body: EventCreateBody) {
       ? `on ${created.start}`
       : `from ${created.start} to ${created.end}`;
   return {
-    event: {
-      eventId: created.id,
-      title: created.title,
-      allDay: created.allDay,
-      start: created.start,
-      end: created.end,
-      members: created.memberIds.map((id) => ({ id, name: names.get(id) ?? "" })),
-      notes: created.notes,
-    },
+    event: toAgentEvent(created, names, agent),
     tellUser:
       `Created "${created.title}" for ${who} ${when}.` +
       (body.end === undefined && !created.allDay

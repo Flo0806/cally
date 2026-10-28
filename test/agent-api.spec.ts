@@ -277,3 +277,52 @@ describe("creating events", () => {
     expect(found.occurrences[0]?.eventId).toBe(event.eventId);
   });
 });
+
+describe("where an event comes from", () => {
+  const messageId = `<${TAG}@mail.example>`;
+  let eventId = "";
+
+  beforeAll(async () => {
+    const response = await agent(key, "POST", "/api/agent/events", {
+      title: `${TAG} from a mail`,
+      allDay: true,
+      start: "2026-11-15",
+      memberIds: [memberId],
+      sourceRef: messageId,
+    });
+    eventId = ((await response.json()) as { event: { eventId: string } }).event.eventId;
+    createdEvents.push(eventId);
+  });
+
+  it("finds the event by its sourceRef", async () => {
+    const found = (await (
+      await agent(
+        key,
+        "GET",
+        `/api/agent/events?from=2026-11-01&to=2026-11-30&sourceRef=${encodeURIComponent(messageId)}`,
+      )
+    ).json()) as { total: number; occurrences: { eventId: string; sourceRef: string }[] };
+    expect(found.total).toBe(1);
+    expect(found.occurrences[0]).toMatchObject({ eventId, sourceRef: messageId });
+  });
+
+  it("returns one event by id, marked as created by this key only", async () => {
+    const own = (await (await agent(key, "GET", `/api/agent/events/${eventId}`)).json()) as {
+      createdByYou: boolean;
+      sourceRef: string;
+    };
+    expect(own).toMatchObject({ createdByYou: true, sourceRef: messageId });
+
+    const other = insertKey(`${TAG} other`);
+    const theirs = (await (await agent(other, "GET", `/api/agent/events/${eventId}`)).json()) as {
+      createdByYou: boolean;
+    };
+    expect(theirs.createdByYou).toBe(false);
+  });
+
+  it("answers an unknown event id with 404", async () => {
+    const response = await agent(key, "GET", "/api/agent/events/nope");
+    expect(response.status).toBe(404);
+    expect((await errorOf(response)).code).toBe("not_found");
+  });
+});

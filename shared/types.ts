@@ -29,6 +29,9 @@ export interface CalendarEvent {
   locationLat: number | null;
   locationLon: number | null;
   travelMinutes: number | null;
+  // Which agent key created it and from what (e.g. a mail's Message-ID), null when made in the app
+  agentKeyId: string | null;
+  sourceRef: string | null;
   createdAt: string;
   updatedAt: string;
 }

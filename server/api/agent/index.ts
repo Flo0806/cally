@@ -24,6 +24,7 @@ Every request sends the key as \`Authorization: Bearer ${AGENT_KEY_PREFIX}...\`.
    guess one.
 2. \`GET /api/agent/events?from=...&to=...\` - what is in the calendar. Look before you answer a
    question about the user's time, and search before you create, so you do not add a duplicate.
+   For an event from a mail, search with \`sourceRef\` set to its Message-ID first.
 
 ## Actions
 
@@ -31,7 +32,8 @@ Every request sends the key as \`Authorization: Bearer ${AGENT_KEY_PREFIX}...\`.
 | --- | --- |
 | \`GET /api/agent\` | this manual |
 | \`GET /api/agent/members\` | family members as \`[{ id, name }]\` |
-| \`GET /api/agent/events?from=&to=&q=&memberIds=\` | events in a date range, optionally filtered |
+| \`GET /api/agent/events?from=&to=&q=&memberIds=&sourceRef=\` | events in a date range, optionally filtered |
+| \`GET /api/agent/events/{eventId}\` | one event |
 | \`POST /api/agent/events\` | create an event |
 
 ## Searching events
@@ -41,11 +43,17 @@ Every request sends the key as \`Authorization: Bearer ${AGENT_KEY_PREFIX}...\`.
 - \`q\` - optional, matches title, notes and location, ignoring case: \`q=nuxt\`.
 - \`memberIds\` - optional, comma separated ids from \`/api/agent/members\`. An event matches when
   at least one of them takes part. Events for the whole family have no members and do not match.
+- \`sourceRef\` - optional, exact match on what you stored when creating, e.g. a mail's Message-ID.
 
 The answer is \`{ from, to, total, truncated, occurrences }\`, sorted by start. A recurring event
-appears once per date it falls on, with the same \`eventId\`. Each occurrence has \`eventId\`,
-\`title\`, \`allDay\`, \`start\`, \`end\`, \`recurring\`, \`members\` as \`[{ id, name }]\`,
-\`location\` and \`notes\`. All-day events have dates (\`2026-11-03\`), the others local
+appears once per date it falls on, with the same \`eventId\`. Each occurrence is an event:
+
+- \`eventId\`, \`title\`, \`allDay\`, \`start\`, \`end\`, \`recurring\`, \`location\`, \`notes\`
+- \`members\` as \`[{ id, name }]\`
+- \`sourceRef\` - what it was created from, null when it was made in the app
+- \`createdByYou\` - true when this key created it
+
+\`GET /api/agent/events/{eventId}\` returns one event in the same shape. All-day events have dates (\`2026-11-03\`), the others local
 date-times (\`2026-11-03T18:30\`). At most ${MAX_SEARCH_RESULTS} are returned; when \`truncated\`
 is true, search a shorter range.
 
@@ -60,6 +68,8 @@ is true, search a shorter range.
   an all-day event lasts that one day and a timed event one hour.
 - \`memberIds\` - required, at least one id from \`/api/agent/members\`: who the event is for.
 - \`notes\` - optional, plain text, at most 2000 characters.
+- \`sourceRef\` - optional, at most 300 characters: where the event comes from, e.g. the
+  Message-ID of the mail that announced it. Set it whenever there is one.
 
 Location, repetition and category cannot be set here. If the user asked for one, create the
 event without it and tell them to add it in the app.
