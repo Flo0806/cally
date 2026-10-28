@@ -1,9 +1,10 @@
 import * as v from "valibot";
 import { AgentError } from "./errors";
 
-// valibot reports a missing and an unknown key as the same issue type, only `expected` differs
+// valibot reports a missing body, a missing and an unknown key as one issue type, `expected` tells them apart
 function messageOf(issue: v.BaseIssue<unknown>): string {
   if (issue.type !== "strict_object") return issue.message;
+  if (issue.expected === "Object") return "Must be a JSON object.";
   return issue.expected === "never" ? "Unknown field." : "Required.";
 }
 

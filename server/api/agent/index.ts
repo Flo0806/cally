@@ -23,7 +23,7 @@ Every request sends the key as \`Authorization: Bearer ${AGENT_KEY_PREFIX}...\`.
 1. \`GET /api/agent/members\` - the family members with their ids. Take ids from here, never
    guess one.
 2. \`GET /api/agent/events?from=...&to=...\` - what is in the calendar. Look before you answer a
-   question about the user's time.
+   question about the user's time, and search before you create, so you do not add a duplicate.
 
 ## Actions
 
@@ -32,6 +32,7 @@ Every request sends the key as \`Authorization: Bearer ${AGENT_KEY_PREFIX}...\`.
 | \`GET /api/agent\` | this manual |
 | \`GET /api/agent/members\` | family members as \`[{ id, name }]\` |
 | \`GET /api/agent/events?from=&to=&q=&memberIds=\` | events in a date range, optionally filtered |
+| \`POST /api/agent/events\` | create an event |
 
 ## Searching events
 
@@ -48,10 +49,41 @@ appears once per date it falls on, with the same \`eventId\`. Each occurrence ha
 date-times (\`2026-11-03T18:30\`). At most ${MAX_SEARCH_RESULTS} are returned; when \`truncated\`
 is true, search a shorter range.
 
+## Creating events
+
+\`POST /api/agent/events\` with a JSON body:
+
+- \`title\` - required, one line, at most 120 characters.
+- \`allDay\` - required, true or false.
+- \`start\` - required. All-day: \`YYYY-MM-DD\`. Otherwise local time: \`YYYY-MM-DDTHH:mm\`.
+- \`end\` - optional, same format, not before \`start\`, inclusive for all-day events. Without it
+  an all-day event lasts that one day and a timed event one hour.
+- \`memberIds\` - required, at least one id from \`/api/agent/members\`: who the event is for.
+- \`notes\` - optional, plain text, at most 2000 characters.
+
+Location, repetition and category cannot be set here. If the user asked for one, create the
+event without it and tell them to add it in the app.
+
+The answer (201) is \`{ event, tellUser }\`: the event as stored, and one sentence saying what
+you did. Pass \`tellUser\` on to the user.
+
+\`\`\`http
+POST /api/agent/events
+Authorization: Bearer ${AGENT_KEY_PREFIX}...
+Content-Type: application/json
+
+{ "title": "Nuxt Meetup", "allDay": false, "start": "2026-11-12T18:30", "end": "2026-11-12T21:00",
+  "memberIds": ["<id from /api/agent/members>"] }
+\`\`\`
+
 ## Rules
 
 - **Do not guess.** Answer from what the API returned. If nothing matched, say so, and say which
-  range and filter you searched.
+  range and filter you searched. Create an event only with a date, time and members the user
+  gave you or that are beyond doubt; otherwise ask.
+- **Tell the user what you created.** The family sees new events on the kitchen tablet at once.
+- Unknown fields are refused, not ignored. If a call fails, read \`issues\`, fix exactly those
+  fields, and try once more.
 - **Limit per key:** 120 requests per minute (\`rate_limited\`). The header \`retry-after\` says
   how many seconds to wait. If you are repeating the same call, stop and tell the user instead.
 

@@ -1,8 +1,8 @@
 import { Temporal } from "temporal-polyfill";
 import * as v from "valibot";
-import { isDateString } from "#shared/dates";
+import { isDateString, isDateTimeString, toDateTimeString } from "#shared/dates";
 import { expandEvents } from "#shared/occurrences";
-import { listEventsInRange } from "../database/events";
+import { createEvent, listEventsInRange } from "../database/events";
 import { listLookups } from "../database/lookups";
 import { AgentError } from "./errors";
 
@@ -66,14 +66,11 @@ export interface AgentOccurrence {
   notes: string;
 }
 
-export async function searchOccurrences({ from, to, q, memberIds }: EventSearchQuery) {
-  const [events, members] = await Promise.all([
-    listEventsInRange(from, to),
-    listLookups("members"),
-  ]);
+// Names by id, and the check that every id the agent sent exists
+async function memberNames(ids: string[] = []): Promise<Map<string, string>> {
+  const members = await listLookups("members");
   const names = new Map(members.map((m) => [m.id, m.name]));
-
-  const unknown = memberIds?.filter((id) => !names.has(id)) ?? [];
+  const unknown = ids.filter((id) => !names.has(id));
   if (unknown.length) {
     throw new AgentError(400, {
       code: "unknown_member",
@@ -81,6 +78,11 @@ export async function searchOccurrences({ from, to, q, memberIds }: EventSearchQ
       hint: "Take member ids from GET /api/agent/members.",
     });
   }
+  return names;
+}
+
+export async function searchOccurrences({ from, to, q, memberIds }: EventSearchQuery) {
+  const [events, names] = await Promise.all([listEventsInRange(from, to), memberNames(memberIds)]);
 
   const needle = q?.toLocaleLowerCase("de");
   const matching = events.filter(
@@ -110,5 +112,111 @@ export async function searchOccurrences({ from, to, q, memberIds }: EventSearchQ
       location: o.location,
       notes: notes.get(o.eventId) ?? "",
     })),
+  };
+}
+
+const DEFAULT_TIMED_HOURS = 1;
+
+function validStart(allDay: boolean, value: string): boolean {
+  return allDay ? isDateString(value) : isDateTimeString(value);
+}
+
+// The agent's own body, mapped onto the app's event in `createAgentEvent`. Location, repeat and
+// category are left out: a location needs coordinates the agent cannot resolve.
+export const eventCreateBody = v.pipe(
+  v.strictObject({
+    title: v.pipe(
+      v.string("Must be a string."),
+      v.trim(),
+      v.minLength(1, "Must not be empty."),
+      v.maxLength(120, "At most 120 characters."),
+    ),
+    allDay: v.boolean("Must be true or false."),
+    start: v.string("Must be a string."),
+    end: v.optional(v.string("Must be a string.")),
+    memberIds: v.pipe(
+      v.array(v.string(), "Must be an array of member ids."),
+      v.minLength(1, "At least one member id."),
+    ),
+    notes: v.optional(
+      v.pipe(
+        v.string("Must be a string."),
+        v.trim(),
+        v.maxLength(2000, "At most 2000 characters."),
+      ),
+      "",
+    ),
+  }),
+  v.forward(
+    v.check(
+      ({ allDay, start }) => validStart(allDay, start),
+      "Must be YYYY-MM-DD for an all-day event, YYYY-MM-DDTHH:mm otherwise.",
+    ),
+    ["start"],
+  ),
+  v.forward(
+    v.check(
+      ({ allDay, end }) => end === undefined || validStart(allDay, end),
+      "Must be YYYY-MM-DD for an all-day event, YYYY-MM-DDTHH:mm otherwise.",
+    ),
+    ["end"],
+  ),
+  v.forward(
+    v.check(
+      ({ allDay, start, end }) =>
+        end === undefined || !validStart(allDay, start) || !validStart(allDay, end) || end >= start,
+      "Must not be before start.",
+    ),
+    ["end"],
+  ),
+);
+
+export type EventCreateBody = v.InferOutput<typeof eventCreateBody>;
+
+export async function createAgentEvent(body: EventCreateBody) {
+  const names = await memberNames(body.memberIds);
+  const end =
+    body.end ??
+    (body.allDay
+      ? body.start
+      : toDateTimeString(
+          Temporal.PlainDateTime.from(body.start).add({ hours: DEFAULT_TIMED_HOURS }),
+        ));
+
+  const created = await createEvent({
+    title: body.title,
+    notes: body.notes,
+    allDay: body.allDay,
+    start: body.start,
+    end,
+    rrule: null,
+    exdates: [],
+    categoryId: null,
+    memberIds: body.memberIds,
+    location: "",
+    locationLat: null,
+    locationLon: null,
+  });
+
+  const who = created.memberIds.map((id) => names.get(id)).join(", ");
+  const when =
+    created.start === created.end
+      ? `on ${created.start}`
+      : `from ${created.start} to ${created.end}`;
+  return {
+    event: {
+      eventId: created.id,
+      title: created.title,
+      allDay: created.allDay,
+      start: created.start,
+      end: created.end,
+      members: created.memberIds.map((id) => ({ id, name: names.get(id) ?? "" })),
+      notes: created.notes,
+    },
+    tellUser:
+      `Created "${created.title}" for ${who} ${when}.` +
+      (body.end === undefined && !created.allDay
+        ? ` No end was given, so it lasts ${DEFAULT_TIMED_HOURS} hour.`
+        : ""),
   };
 }
