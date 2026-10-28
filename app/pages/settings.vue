@@ -97,8 +97,11 @@ function usage(key: AgentKey): string {
           <div class="row-main">
             <span class="row-name">{{ key.name }}</span>
             <span class="text-muted text-sm">
-              <code>{{ key.prefix }}…</code> · erstellt {{ formatRelative(key.createdAt) }} ·
-              {{ usage(key) }}
+              <code>{{ key.prefix }}…</code>
+              <!-- "vor 44 Min" on the server can be "vor 45 Min" in the browser a moment later -->
+              <ClientOnly>
+                · erstellt {{ formatRelative(key.createdAt) }} · {{ usage(key) }}
+              </ClientOnly>
             </span>
           </div>
           <span v-if="key.revokedAt" class="text-muted text-sm">Widerrufen</span>
