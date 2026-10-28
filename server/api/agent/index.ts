@@ -1,7 +1,12 @@
 import { Temporal } from "temporal-polyfill";
 import { TIME_ZONE } from "#shared/dates";
 import { defineAgentHandler } from "../../agent/handler";
-import { DELETE_WINDOW_MINUTES, MAX_SEARCH_DAYS, MAX_SEARCH_RESULTS } from "../../agent/events";
+import {
+  DELETE_GRACE_DAYS,
+  DELETE_ONLY_OWN,
+  MAX_SEARCH_DAYS,
+  MAX_SEARCH_RESULTS,
+} from "../../agent/events";
 import { agentNotFound } from "../../agent/errors";
 import { AGENT_KEY_PREFIX } from "../../database/agent-keys";
 
@@ -37,7 +42,7 @@ Every request sends the key as \`Authorization: Bearer ${AGENT_KEY_PREFIX}...\`.
 | \`GET /api/agent/events/{eventId}\` | one event |
 | \`POST /api/agent/events\` | create an event |
 | \`PATCH /api/agent/events/{eventId}\` | change an event you created |
-| \`DELETE /api/agent/events/{eventId}\` | delete an event you created, within ${DELETE_WINDOW_MINUTES} minutes |
+| \`DELETE /api/agent/events/{eventId}\` | delete a single event${DELETE_ONLY_OWN ? " you created" : ""} that is not over |
 
 ## Searching events
 
@@ -55,7 +60,7 @@ appears once per date it falls on, with the same \`eventId\`. Each occurrence is
 - \`members\` as \`[{ id, name }]\`, \`category\` as \`{ id, name }\` or null
 - \`sourceRef\` - what it was created from, null when it was made in the app
 - \`createdByYou\` - true when this key created it; only then can you change it
-- \`deletableUntil\` - until when you can delete it, null when you cannot
+- \`deletable\` - true when you can delete it now
 
 \`GET /api/agent/events/{eventId}\` returns one event in the same shape. All-day events have dates (\`2026-11-03\`), the others local
 date-times (\`2026-11-03T18:30\`). At most ${MAX_SEARCH_RESULTS} are returned; when \`truncated\`
@@ -98,17 +103,18 @@ Content-Type: application/json
 
 ## Changing and deleting events
 
-Only events you created (\`createdByYou\`). Everything else belongs to the family: tell the user
-what should change instead (\`not_own_event\`).
+You can change only events you created (\`createdByYou\`)${DELETE_ONLY_OWN ? ", and delete only those" : ""}. Everything else
+belongs to the family: tell the user what should change instead (\`not_own_event\`).
 
 \`PATCH /api/agent/events/{eventId}\` takes the fields of a new event except \`sourceRef\`, all
 optional; send only what changes. A new \`start\` without \`end\` moves the end along and keeps
 the length. Switching \`allDay\` needs a \`start\` in the other format. \`categoryId: null\`
 removes the category. Location and repetition the family added in the app stay. The answer is \`{ event, tellUser }\`.
 
-\`DELETE /api/agent/events/{eventId}\` is for your own mistakes, within ${DELETE_WINDOW_MINUTES} minutes of
-creating the event (\`delete_window_closed\`). After that the family may already rely on it: tell
-the user and let them delete it in the app. The answer is \`{ deleted, tellUser }\`.
+\`DELETE /api/agent/events/{eventId}\` deletes ${DELETE_ONLY_OWN ? "an event you created" : "any single event"}. **Ask the user before every delete.**
+A series cannot be deleted (\`recurring_event\`), nor an event that ended more than
+${DELETE_GRACE_DAYS} day ago (\`event_in_past\`): tell the user, they can do it in the app.
+The answer is \`{ deleted, tellUser }\`.
 
 ## Rules
 
@@ -139,7 +145,8 @@ Every error has this shape:
 | \`unknown_category\` | 400 | a category id is unknown, take ids from \`/api/agent/categories\` |
 | \`not_own_event\` | 403 | not created with your key, tell the user |
 | \`not_found\` | 404 | no such action or event |
-| \`delete_window_closed\` | 409 | too late to delete, tell the user |
+| \`recurring_event\` | 409 | a series, the user deletes it in the app |
+| \`event_in_past\` | 409 | over for too long, the user deletes it in the app |
 | \`payload_too_large\` | 413 | the body is over 64 KB |
 | \`rate_limited\` | 429 | wait, or stop |
 | \`internal_error\` | 500 | retry once, then tell the user |

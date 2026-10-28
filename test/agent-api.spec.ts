@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { request } from "node:http";
 import { DatabaseSync } from "node:sqlite";
+import { Temporal } from "temporal-polyfill";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 /*
@@ -385,22 +386,33 @@ describe("changing and deleting events", () => {
     expect((await patch(family, { title: "x" })).status).toBe(403);
   });
 
-  it("deletes an own event while it is fresh, not later", async () => {
-    const fresh = await createOwn(key);
-    const own = (await (await agent(key, "GET", `/api/agent/events/${fresh}`)).json()) as {
-      deletableUntil: string | null;
-    };
-    expect(own.deletableUntil).not.toBeNull();
-    const deleted = await agent(key, "DELETE", `/api/agent/events/${fresh}`);
-    expect(deleted.status).toBe(200);
-    expect((await agent(key, "GET", `/api/agent/events/${fresh}`)).status).toBe(404);
+  it("deletes a single event that is not over, yesterday included", async () => {
+    const today = Temporal.Now.plainDateISO("Europe/Berlin");
+    for (const day of [today.add({ days: 3 }), today.subtract({ days: 1 })]) {
+      const id = await createOwn(key, { allDay: true, start: day.toString(), end: day.toString() });
+      const own = (await (await agent(key, "GET", `/api/agent/events/${id}`)).json()) as {
+        deletable: boolean;
+      };
+      expect(own.deletable, day.toString()).toBe(true);
+      expect((await agent(key, "DELETE", `/api/agent/events/${id}`)).status).toBe(200);
+      expect((await agent(key, "GET", `/api/agent/events/${id}`)).status).toBe(404);
+    }
+  });
 
-    const old = await createOwn(key);
-    const twentyMinutesAgo = new Date(Date.now() - 20 * 60_000).toISOString();
-    db.prepare("UPDATE events SET created_at = ? WHERE id = ?").run(twentyMinutesAgo, old);
-    const late = await agent(key, "DELETE", `/api/agent/events/${old}`);
-    expect(late.status).toBe(409);
-    expect((await errorOf(late)).code).toBe("delete_window_closed");
+  it("keeps events that ended before yesterday", async () => {
+    const day = Temporal.Now.plainDateISO("Europe/Berlin").subtract({ days: 2 }).toString();
+    const id = await createOwn(key, { allDay: true, start: day, end: day });
+    const response = await agent(key, "DELETE", `/api/agent/events/${id}`);
+    expect(response.status).toBe(409);
+    expect((await errorOf(response)).code).toBe("event_in_past");
+  });
+
+  it("keeps series", async () => {
+    const id = await createOwn(key);
+    db.prepare("UPDATE events SET rrule = 'FREQ=WEEKLY' WHERE id = ?").run(id);
+    const response = await agent(key, "DELETE", `/api/agent/events/${id}`);
+    expect(response.status).toBe(409);
+    expect((await errorOf(response)).code).toBe("recurring_event");
   });
 });
 

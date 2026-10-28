@@ -9,7 +9,8 @@ export type AgentErrorCode =
   | "unknown_member"
   | "unknown_category"
   | "not_own_event"
-  | "delete_window_closed"
+  | "recurring_event"
+  | "event_in_past"
   | "internal_error";
 
 export interface AgentErrorBody {

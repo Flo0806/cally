@@ -1,6 +1,6 @@
 import { Temporal } from "temporal-polyfill";
 import * as v from "valibot";
-import { isDateString, isDateTimeString, toDateTimeString } from "#shared/dates";
+import { TIME_ZONE, dateOf, isDateString, isDateTimeString, toDateTimeString } from "#shared/dates";
 import { expandEvents } from "#shared/occurrences";
 import type { CalendarEvent } from "#shared/types";
 import {
@@ -83,16 +83,32 @@ export interface AgentEvent {
   notes: string;
   sourceRef: string | null;
   createdByYou: boolean;
-  deletableUntil: string | null;
+  deletable: boolean;
 }
 
-export const DELETE_WINDOW_MINUTES = 15;
+// false lets agents delete any single event, the family's too
+export const DELETE_ONLY_OWN = true;
+// Yesterday still counts, older events are history
+export const DELETE_GRACE_DAYS = 1;
 
-// Own events only, and only while a mistake is fresh. Later the family may rely on it.
-function deletableUntil(event: CalendarEvent, agent: AgentContext): string | null {
-  if (event.agentKeyId !== agent.id) return null;
-  const until = Temporal.Instant.from(event.createdAt).add({ minutes: DELETE_WINDOW_MINUTES });
-  return Temporal.Instant.compare(until, Temporal.Now.instant()) > 0 ? until.toString() : null;
+function deleteRefusal(event: CalendarEvent, agent: AgentContext): AgentError | null {
+  if (DELETE_ONLY_OWN && event.agentKeyId !== agent.id) return notOwnEvent();
+  if (event.rrule) {
+    return new AgentError(409, {
+      code: "recurring_event",
+      message: "Recurring events cannot be deleted through this API.",
+      hint: "Tell the user, they can delete the series or one date of it in the app.",
+    });
+  }
+  const oldest = Temporal.Now.plainDateISO(TIME_ZONE).subtract({ days: DELETE_GRACE_DAYS });
+  if (dateOf(event.end) < oldest.toString()) {
+    return new AgentError(409, {
+      code: "event_in_past",
+      message: `Only events that end on ${oldest} or later can be deleted.`,
+      hint: "Past events stay as a record. Tell the user if it should go anyway.",
+    });
+  }
+  return null;
 }
 
 // The one shape an agent sees an event in, from search, lookup and create alike
@@ -112,7 +128,7 @@ function toAgentEvent(event: CalendarEvent, names: Names, agent: AgentContext): 
     notes: event.notes,
     sourceRef: event.sourceRef,
     createdByYou: event.agentKeyId === agent.id,
-    deletableUntil: deletableUntil(event, agent),
+    deletable: deleteRefusal(event, agent) === null,
   };
 }
 
@@ -261,15 +277,17 @@ function findEvent(id: string): Promise<CalendarEvent> {
   });
 }
 
+function notOwnEvent(): AgentError {
+  return new AgentError(403, {
+    code: "not_own_event",
+    message: "This event was not created with your key.",
+    hint: "Tell the user what should change, they can do it in the app.",
+  });
+}
+
 async function findOwnEvent(id: string, agent: AgentContext): Promise<CalendarEvent> {
   const event = await findEvent(id);
-  if (event.agentKeyId !== agent.id) {
-    throw new AgentError(403, {
-      code: "not_own_event",
-      message: "This event was not created with your key.",
-      hint: "Tell the user what should change, they can do it in the app.",
-    });
-  }
+  if (event.agentKeyId !== agent.id) throw notOwnEvent();
   return event;
 }
 
@@ -404,14 +422,9 @@ export async function updateAgentEvent(id: string, body: EventPatchBody, agent: 
 }
 
 export async function deleteAgentEvent(id: string, agent: AgentContext) {
-  const event = await findOwnEvent(id, agent);
-  if (!deletableUntil(event, agent)) {
-    throw new AgentError(409, {
-      code: "delete_window_closed",
-      message: `Events can only be deleted within ${DELETE_WINDOW_MINUTES} minutes of creating them.`,
-      hint: "Tell the user, they can delete it in the app.",
-    });
-  }
+  const event = await findEvent(id);
+  const refusal = deleteRefusal(event, agent);
+  if (refusal) throw refusal;
   await deleteEvent(id);
   return { deleted: id, tellUser: `Deleted "${event.title}".` };
 }
