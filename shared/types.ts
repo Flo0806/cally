@@ -151,3 +151,13 @@ export interface Weather {
   current: { temp: number; code: number; isDay: boolean };
   days: WeatherDay[];
 }
+
+// The key itself and its hash never leave the server, `prefix` tells keys apart in the list
+export interface AgentKey {
+  id: string;
+  name: string;
+  prefix: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+}

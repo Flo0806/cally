@@ -109,4 +109,20 @@ export const migrations: Migration[] = [
       )`,
     ],
   },
+  {
+    version: 6,
+    name: "agent-keys",
+    sql: [
+      // Only the SHA-256 of a key is stored, the key itself is shown once. Revoked, never deleted.
+      `CREATE TABLE agent_keys (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        prefix TEXT NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL,
+        last_used_at TEXT,
+        revoked_at TEXT
+      )`,
+    ],
+  },
 ];
