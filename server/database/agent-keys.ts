@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { createError } from "nuxt/server";
+import { Temporal } from "temporal-polyfill";
 import type { AgentKey } from "#shared/types";
 import { nowIso } from "#shared/dates";
 import { useDb } from "../utils/db";
@@ -65,4 +66,15 @@ export async function findAgentKey(key: string): Promise<AgentKey | null> {
     .prepare("SELECT * FROM agent_keys WHERE token_hash = ?")
     .get(hashKey(key))) as Row | undefined;
   return row ? toAgentKey(row) : null;
+}
+
+// At most once a minute, otherwise every agent read becomes a write
+export async function touchAgentKey(id: string): Promise<void> {
+  const db = await useDb();
+  const now = Temporal.Now.instant();
+  await db
+    .prepare(
+      "UPDATE agent_keys SET last_used_at = ? WHERE id = ? AND (last_used_at IS NULL OR last_used_at < ?)",
+    )
+    .run(now.toString(), id, now.subtract({ minutes: 1 }).toString());
 }
