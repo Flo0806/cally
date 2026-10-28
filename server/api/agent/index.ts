@@ -1,7 +1,7 @@
 import { Temporal } from "temporal-polyfill";
 import { TIME_ZONE } from "#shared/dates";
 import { defineAgentHandler } from "../../agent/handler";
-import { MAX_SEARCH_DAYS, MAX_SEARCH_RESULTS } from "../../agent/events";
+import { DELETE_WINDOW_MINUTES, MAX_SEARCH_DAYS, MAX_SEARCH_RESULTS } from "../../agent/events";
 import { agentNotFound } from "../../agent/errors";
 import { AGENT_KEY_PREFIX } from "../../database/agent-keys";
 
@@ -35,6 +35,8 @@ Every request sends the key as \`Authorization: Bearer ${AGENT_KEY_PREFIX}...\`.
 | \`GET /api/agent/events?from=&to=&q=&memberIds=&sourceRef=\` | events in a date range, optionally filtered |
 | \`GET /api/agent/events/{eventId}\` | one event |
 | \`POST /api/agent/events\` | create an event |
+| \`PATCH /api/agent/events/{eventId}\` | change an event you created |
+| \`DELETE /api/agent/events/{eventId}\` | delete an event you created, within ${DELETE_WINDOW_MINUTES} minutes |
 
 ## Searching events
 
@@ -51,7 +53,8 @@ appears once per date it falls on, with the same \`eventId\`. Each occurrence is
 - \`eventId\`, \`title\`, \`allDay\`, \`start\`, \`end\`, \`recurring\`, \`location\`, \`notes\`
 - \`members\` as \`[{ id, name }]\`
 - \`sourceRef\` - what it was created from, null when it was made in the app
-- \`createdByYou\` - true when this key created it
+- \`createdByYou\` - true when this key created it; only then can you change it
+- \`deletableUntil\` - until when you can delete it, null when you cannot
 
 \`GET /api/agent/events/{eventId}\` returns one event in the same shape. All-day events have dates (\`2026-11-03\`), the others local
 date-times (\`2026-11-03T18:30\`). At most ${MAX_SEARCH_RESULTS} are returned; when \`truncated\`
@@ -86,12 +89,27 @@ Content-Type: application/json
   "memberIds": ["<id from /api/agent/members>"] }
 \`\`\`
 
+## Changing and deleting events
+
+Only events you created (\`createdByYou\`). Everything else belongs to the family: tell the user
+what should change instead (\`not_own_event\`).
+
+\`PATCH /api/agent/events/{eventId}\` takes the fields of a new event except \`sourceRef\`, all
+optional; send only what changes. A new \`start\` without \`end\` moves the end along and keeps
+the length. Switching \`allDay\` needs a \`start\` in the other format. Location, category and
+repetition the family added in the app stay. The answer is \`{ event, tellUser }\`.
+
+\`DELETE /api/agent/events/{eventId}\` is for your own mistakes, within ${DELETE_WINDOW_MINUTES} minutes of
+creating the event (\`delete_window_closed\`). After that the family may already rely on it: tell
+the user and let them delete it in the app. The answer is \`{ deleted, tellUser }\`.
+
 ## Rules
 
 - **Do not guess.** Answer from what the API returned. If nothing matched, say so, and say which
   range and filter you searched. Create an event only with a date, time and members the user
   gave you or that are beyond doubt; otherwise ask.
-- **Tell the user what you created.** The family sees new events on the kitchen tablet at once.
+- **Tell the user what you did.** After every create, change and delete, pass \`tellUser\` on.
+  The family sees it on the kitchen tablet at once.
 - Unknown fields are refused, not ignored. If a call fails, read \`issues\`, fix exactly those
   fields, and try once more.
 - **Limit per key:** 120 requests per minute (\`rate_limited\`). The header \`retry-after\` says
@@ -111,7 +129,9 @@ Every error has this shape:
 | \`missing_key\`, \`invalid_key\`, \`key_revoked\` | 401 | ask the user for a valid key |
 | \`validation_failed\` | 400 | fix the fields in \`issues\` |
 | \`unknown_member\` | 400 | a member id is unknown, take ids from \`/api/agent/members\` |
-| \`not_found\` | 404 | no such action, see the list above |
+| \`not_own_event\` | 403 | not created with your key, tell the user |
+| \`not_found\` | 404 | no such action or event |
+| \`delete_window_closed\` | 409 | too late to delete, tell the user |
 | \`payload_too_large\` | 413 | the body is over 64 KB |
 | \`rate_limited\` | 429 | wait, or stop |
 | \`internal_error\` | 500 | retry once, then tell the user |

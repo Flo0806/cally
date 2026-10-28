@@ -173,6 +173,7 @@ describe("routes", () => {
       ["GET", "/api/agent/nope"],
       ["POST", "/api/agent"],
       ["POST", "/api/agent/members"],
+      ["PUT", "/api/agent/events/nope"],
     ] as const) {
       const response = await agent(key, method, path);
       expect(response.status, `${method} ${path}`).toBe(404);
@@ -324,5 +325,80 @@ describe("where an event comes from", () => {
     const response = await agent(key, "GET", "/api/agent/events/nope");
     expect(response.status).toBe(404);
     expect((await errorOf(response)).code).toBe("not_found");
+  });
+});
+
+describe("changing and deleting events", () => {
+  async function createOwn(apiKey: string, body: Record<string, unknown> = {}) {
+    const response = await agent(apiKey, "POST", "/api/agent/events", {
+      title: `${TAG} own`,
+      allDay: false,
+      start: "2026-11-18T18:00",
+      end: "2026-11-18T19:30",
+      memberIds: [memberId],
+      ...body,
+    });
+    const { event } = (await response.json()) as { event: { eventId: string } };
+    createdEvents.push(event.eventId);
+    return event.eventId;
+  }
+
+  const patch = (id: string, body: unknown, apiKey = key) =>
+    agent(apiKey, "PATCH", `/api/agent/events/${id}`, body);
+
+  it("moves the end along when only the start changes", async () => {
+    const id = await createOwn(key);
+    const response = await patch(id, { start: "2026-11-18T19:00" });
+    expect(response.status).toBe(200);
+    const { event, tellUser } = (await response.json()) as {
+      event: { start: string; end: string };
+      tellUser: string;
+    };
+    expect(event).toMatchObject({ start: "2026-11-18T19:00", end: "2026-11-18T20:30" });
+    expect(tellUser).toContain("start");
+  });
+
+  it("refuses an empty change, a wrong format and an end before the start", async () => {
+    const id = await createOwn(key);
+    expect((await errorOf(await patch(id, {}))).code).toBe("validation_failed");
+    expect((await errorOf(await patch(id, { allDay: true }))).issues?.[0]?.path).toBe("start");
+    expect((await errorOf(await patch(id, { end: "2026-11-18T17:00" }))).issues?.[0]).toEqual({
+      path: "end",
+      message: "Must not be before start.",
+    });
+    expect((await errorOf(await patch(id, { location: "x" }))).issues?.[0]?.message).toBe(
+      "Unknown field.",
+    );
+  });
+
+  it("does not touch events of another key or of the family", async () => {
+    const theirs = await createOwn(insertKey(`${TAG} owner`));
+    const changed = await patch(theirs, { title: "x" });
+    expect(changed.status).toBe(403);
+    expect((await errorOf(changed)).code).toBe("not_own_event");
+    expect((await agent(key, "DELETE", `/api/agent/events/${theirs}`)).status).toBe(403);
+
+    // A family event of the test's own, never a real one: if the check broke, it would be changed
+    const family = await createOwn(key);
+    db.prepare("UPDATE events SET agent_key_id = NULL WHERE id = ?").run(family);
+    expect((await patch(family, { title: "x" })).status).toBe(403);
+  });
+
+  it("deletes an own event while it is fresh, not later", async () => {
+    const fresh = await createOwn(key);
+    const own = (await (await agent(key, "GET", `/api/agent/events/${fresh}`)).json()) as {
+      deletableUntil: string | null;
+    };
+    expect(own.deletableUntil).not.toBeNull();
+    const deleted = await agent(key, "DELETE", `/api/agent/events/${fresh}`);
+    expect(deleted.status).toBe(200);
+    expect((await agent(key, "GET", `/api/agent/events/${fresh}`)).status).toBe(404);
+
+    const old = await createOwn(key);
+    const twentyMinutesAgo = new Date(Date.now() - 20 * 60_000).toISOString();
+    db.prepare("UPDATE events SET created_at = ? WHERE id = ?").run(twentyMinutesAgo, old);
+    const late = await agent(key, "DELETE", `/api/agent/events/${old}`);
+    expect(late.status).toBe(409);
+    expect((await errorOf(late)).code).toBe("delete_window_closed");
   });
 });

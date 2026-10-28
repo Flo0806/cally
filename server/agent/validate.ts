@@ -1,3 +1,5 @@
+import { readBody } from "nuxt/server";
+import type { RequestEvent } from "nuxt/server";
 import * as v from "valibot";
 import { AgentError } from "./errors";
 
@@ -23,5 +25,15 @@ export function parseAgentInput<TSchema extends v.GenericSchema>(
       path: v.getDotPath(issue) ?? "",
       message: messageOf(issue),
     })),
+  });
+}
+
+export function readAgentBody(event: RequestEvent): Promise<unknown> {
+  return readBody(event).catch(() => {
+    throw new AgentError(400, {
+      code: "validation_failed",
+      message: "The body is not valid JSON.",
+      hint: 'Send a JSON object with "Content-Type: application/json".',
+    });
   });
 }

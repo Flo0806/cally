@@ -3,7 +3,13 @@ import * as v from "valibot";
 import { isDateString, isDateTimeString, toDateTimeString } from "#shared/dates";
 import { expandEvents } from "#shared/occurrences";
 import type { CalendarEvent } from "#shared/types";
-import { createEvent, getEvent, listEventsInRange } from "../database/events";
+import {
+  createEvent,
+  deleteEvent,
+  getEvent,
+  listEventsInRange,
+  updateEvent,
+} from "../database/events";
 import { listLookups } from "../database/lookups";
 import type { AgentContext } from "./door";
 import { AgentError } from "./errors";
@@ -76,6 +82,16 @@ export interface AgentEvent {
   notes: string;
   sourceRef: string | null;
   createdByYou: boolean;
+  deletableUntil: string | null;
+}
+
+export const DELETE_WINDOW_MINUTES = 15;
+
+// Own events only, and only while a mistake is fresh. Later the family may rely on it.
+function deletableUntil(event: CalendarEvent, agent: AgentContext): string | null {
+  if (event.agentKeyId !== agent.id) return null;
+  const until = Temporal.Instant.from(event.createdAt).add({ minutes: DELETE_WINDOW_MINUTES });
+  return Temporal.Instant.compare(until, Temporal.Now.instant()) > 0 ? until.toString() : null;
 }
 
 // The one shape an agent sees an event in, from search, lookup and create alike
@@ -96,6 +112,7 @@ function toAgentEvent(
     notes: event.notes,
     sourceRef: event.sourceRef,
     createdByYou: event.agentKeyId === agent.id,
+    deletableUntil: deletableUntil(event, agent),
   };
 }
 
@@ -153,31 +170,32 @@ function validStart(allDay: boolean, value: string): boolean {
   return allDay ? isDateString(value) : isDateTimeString(value);
 }
 
+const title = v.pipe(
+  v.string("Must be a string."),
+  v.trim(),
+  v.minLength(1, "Must not be empty."),
+  v.maxLength(120, "At most 120 characters."),
+);
+const memberIds = v.pipe(
+  v.array(v.string(), "Must be an array of member ids."),
+  v.minLength(1, "At least one member id."),
+);
+const notes = v.pipe(
+  v.string("Must be a string."),
+  v.trim(),
+  v.maxLength(2000, "At most 2000 characters."),
+);
+
 // The agent's own body, mapped onto the app's event in `createAgentEvent`. Location, repeat and
 // category are left out: a location needs coordinates the agent cannot resolve.
 export const eventCreateBody = v.pipe(
   v.strictObject({
-    title: v.pipe(
-      v.string("Must be a string."),
-      v.trim(),
-      v.minLength(1, "Must not be empty."),
-      v.maxLength(120, "At most 120 characters."),
-    ),
+    title,
     allDay: v.boolean("Must be true or false."),
     start: v.string("Must be a string."),
     end: v.optional(v.string("Must be a string.")),
-    memberIds: v.pipe(
-      v.array(v.string(), "Must be an array of member ids."),
-      v.minLength(1, "At least one member id."),
-    ),
-    notes: v.optional(
-      v.pipe(
-        v.string("Must be a string."),
-        v.trim(),
-        v.maxLength(2000, "At most 2000 characters."),
-      ),
-      "",
-    ),
+    memberIds,
+    notes: v.optional(notes, ""),
     sourceRef: v.optional(sourceRef),
   }),
   v.forward(
@@ -206,30 +224,53 @@ export const eventCreateBody = v.pipe(
 
 export type EventCreateBody = v.InferOutput<typeof eventCreateBody>;
 
+function findEvent(id: string): Promise<CalendarEvent> {
+  return getEvent(id).catch((error: { statusCode?: number }) => {
+    if (error.statusCode !== 404) throw error;
+    throw new AgentError(404, {
+      code: "not_found",
+      message: `There is no event with id ${id}.`,
+      hint: "Take event ids from GET /api/agent/events.",
+    });
+  });
+}
+
+async function findOwnEvent(id: string, agent: AgentContext): Promise<CalendarEvent> {
+  const event = await findEvent(id);
+  if (event.agentKeyId !== agent.id) {
+    throw new AgentError(403, {
+      code: "not_own_event",
+      message: "This event was not created with your key.",
+      hint: "Tell the user what should change, they can do it in the app.",
+    });
+  }
+  return event;
+}
+
 export async function getAgentEvent(id: string, agent: AgentContext): Promise<AgentEvent> {
-  const [event, names] = await Promise.all([
-    getEvent(id).catch((error: { statusCode?: number }) => {
-      if (error.statusCode !== 404) throw error;
-      throw new AgentError(404, {
-        code: "not_found",
-        message: `There is no event with id ${id}.`,
-        hint: "Take event ids from GET /api/agent/events.",
-      });
-    }),
-    memberNames(),
-  ]);
+  const [event, names] = await Promise.all([findEvent(id), memberNames()]);
   return toAgentEvent(event, names, agent);
+}
+
+function defaultEnd(allDay: boolean, start: string): string {
+  return allDay
+    ? start
+    : toDateTimeString(Temporal.PlainDateTime.from(start).add({ hours: DEFAULT_TIMED_HOURS }));
+}
+
+// A moved start takes the end along, so "moved to 19:00" keeps the length of the event
+function shiftedEnd(event: CalendarEvent, start: string): string {
+  if (event.allDay) {
+    const days = Temporal.PlainDate.from(event.end).since(event.start).days;
+    return Temporal.PlainDate.from(start).add({ days }).toString();
+  }
+  const length = Temporal.PlainDateTime.from(event.end).since(event.start);
+  return toDateTimeString(Temporal.PlainDateTime.from(start).add(length));
 }
 
 export async function createAgentEvent(body: EventCreateBody, agent: AgentContext) {
   const names = await memberNames(body.memberIds);
-  const end =
-    body.end ??
-    (body.allDay
-      ? body.start
-      : toDateTimeString(
-          Temporal.PlainDateTime.from(body.start).add({ hours: DEFAULT_TIMED_HOURS }),
-        ));
+  const end = body.end ?? defaultEnd(body.allDay, body.start);
 
   const created = await createEvent(
     {
@@ -262,4 +303,88 @@ export async function createAgentEvent(body: EventCreateBody, agent: AgentContex
         ? ` No end was given, so it lasts ${DEFAULT_TIMED_HOURS} hour.`
         : ""),
   };
+}
+
+export const eventPatchBody = v.pipe(
+  v.strictObject({
+    title: v.optional(title),
+    allDay: v.optional(v.boolean("Must be true or false.")),
+    start: v.optional(v.string("Must be a string.")),
+    end: v.optional(v.string("Must be a string.")),
+    memberIds: v.optional(memberIds),
+    notes: v.optional(notes),
+  }),
+  v.check((body) => Object.keys(body).length > 0, "Send at least one field to change."),
+);
+
+export type EventPatchBody = v.InferOutput<typeof eventPatchBody>;
+
+const FORMAT_HINT = "Must be YYYY-MM-DD for an all-day event, YYYY-MM-DDTHH:mm otherwise.";
+
+function invalid(path: string, message: string): AgentError {
+  return new AgentError(400, {
+    code: "validation_failed",
+    message: "The request has invalid fields.",
+    hint: "Fix exactly the fields in issues and try once more.",
+    issues: [{ path, message }],
+  });
+}
+
+export async function updateAgentEvent(id: string, body: EventPatchBody, agent: AgentContext) {
+  const current = await findOwnEvent(id, agent);
+  const names = await memberNames(body.memberIds);
+
+  // The result is judged as a whole: a new allDay needs a start in its format
+  const allDay = body.allDay ?? current.allDay;
+  const start = body.start ?? current.start;
+  if (!validStart(allDay, start)) throw invalid("start", FORMAT_HINT);
+  const end =
+    body.end ??
+    (body.allDay !== undefined && body.allDay !== current.allDay
+      ? defaultEnd(allDay, start)
+      : body.start
+        ? shiftedEnd(current, start)
+        : current.end);
+  if (!validStart(allDay, end)) throw invalid("end", FORMAT_HINT);
+  if (end < start) throw invalid("end", "Must not be before start.");
+
+  // Location, category and repetition stay as the family set them in the app
+  const updated = await updateEvent(id, {
+    title: body.title ?? current.title,
+    notes: body.notes ?? current.notes,
+    allDay,
+    start,
+    end,
+    rrule: current.rrule,
+    exdates: current.exdates,
+    categoryId: current.categoryId,
+    memberIds: body.memberIds ?? current.memberIds,
+    location: current.location,
+    locationLat: current.locationLat,
+    locationLon: current.locationLon,
+  });
+
+  const fields = ["title", "allDay", "start", "end", "memberIds", "notes"] as const;
+  const changed = fields.filter(
+    (field) => JSON.stringify(current[field]) !== JSON.stringify(updated[field]),
+  );
+  return {
+    event: toAgentEvent(updated, names, agent),
+    tellUser: changed.length
+      ? `Changed ${changed.join(", ")} of "${updated.title}".`
+      : `Nothing changed on "${updated.title}".`,
+  };
+}
+
+export async function deleteAgentEvent(id: string, agent: AgentContext) {
+  const event = await findOwnEvent(id, agent);
+  if (!deletableUntil(event, agent)) {
+    throw new AgentError(409, {
+      code: "delete_window_closed",
+      message: `Events can only be deleted within ${DELETE_WINDOW_MINUTES} minutes of creating them.`,
+      hint: "Tell the user, they can delete it in the app.",
+    });
+  }
+  await deleteEvent(id);
+  return { deleted: id, tellUser: `Deleted "${event.title}".` };
 }

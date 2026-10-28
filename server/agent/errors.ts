@@ -7,6 +7,8 @@ export type AgentErrorCode =
   | "not_found"
   | "validation_failed"
   | "unknown_member"
+  | "not_own_event"
+  | "delete_window_closed"
   | "internal_error";
 
 export interface AgentErrorBody {
