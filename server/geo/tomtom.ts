@@ -1,5 +1,5 @@
 import { Temporal } from "temporal-polyfill";
-import { useRuntimeConfig } from "nitro/runtime-config";
+import { useRuntimeConfig } from "nuxt/server";
 import { TIME_ZONE, toDateTimeString } from "#shared/dates";
 
 // TomTom Routing with traffic. `arriveAt` uses traffic patterns for that time of day and

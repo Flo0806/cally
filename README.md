@@ -39,8 +39,7 @@ No Pinia, no ORM, no component library. State lives in composables over `useStat
 
 Things that came up while building on the nightly, in case they save someone an afternoon:
 
-- Server auto-imports are gone. `defineEventHandler`, `getQuery`, `readBody`, `createError` come from `nuxt/server`, `useDatabase` from `nitro/database`, `$fetch` from `ofetch`
-- `useRuntimeConfig` from `nuxt/server` returned a stub in dev at the time of writing (the nitro dev environment externalized `nuxt/server`). The fix is upstream, until it ships the app imports it from `nitro/runtime-config`
+- Server auto-imports are gone. `defineEventHandler`, `getQuery`, `readBody`, `createError`, `useRuntimeConfig` come from `nuxt/server`, `useDatabase` from `nitro/database`, `$fetch` from `ofetch`
 - Nuxt 5 has sessions built in (`useSession`), but `nuxt-auth-utils` still targets h3 v1. It runs fine through the compat layer, only the event types disagree, see `server/utils/compat.ts`
 - `db0`'s `sql` tagged template returns rows only for `SELECT`. `PRAGMA` and friends go through `prepare().get()`
 - Nitro tasks work in dev and in the node server preset, the news feeds are pulled every 30 minutes by a scheduled task
@@ -54,6 +53,8 @@ pnpm dev
 ```
 
 For local development without a Google client set `NUXT_PUBLIC_AUTH_DISABLED=1`. The weather and the drive times need `NUXT_WEATHER_LATITUDE` and `NUXT_WEATHER_LONGITUDE`, that is home. Traffic needs `NUXT_TOMTOM_KEY` (free tier), pushes need an ntfy server and token (`PIGEON_NTFY_*`), and reminders only run with `NUXT_REMINDERS=1`.
+
+`pnpm test` runs against the dev server (`CALLY_URL`, default `http://localhost:3005`). It writes its own agent keys and events into `.data/db.sqlite` and removes exactly those again.
 
 Production runs as a container:
 

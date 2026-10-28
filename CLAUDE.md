@@ -15,10 +15,8 @@ Runs on a 12" touch tablet in the kitchen. Touch first, readable from a distance
 - No em-dashes anywhere (code, comments, docs, chat). Use a normal hyphen if needed.
 - UI text is German and hardcoded. i18n comes later, do not build abstractions for it now.
 - Explicit imports on the server, there are no auto-imports. Request helpers come from `nuxt/server`
-  (`defineEventHandler`, `getQuery`, `readBody`, `createError`), `$fetch` from `ofetch`,
+  (`defineEventHandler`, `getQuery`, `readBody`, `createError`, `useRuntimeConfig`), `$fetch` from `ofetch`,
   `useDatabase` from `nitro/database`. Shared code via `#shared/...`.
-- `useRuntimeConfig` comes from `nitro/runtime-config` for now. The `nuxt/server` one returns a stub
-  in dev because Vite externalizes `nuxt/server`; fix is pending upstream. Switch back once merged.
 - pnpm: never add `nitro` or `h3` as direct dependencies (duplicate instances). If server imports
   stop resolving, hoist via `.npmrc` `public-hoist-pattern[]=nitro` instead.
 - Formatting and linting: oxfmt / oxlint, config in `.oxfmtrc.json` and `.oxlintrc.json`.

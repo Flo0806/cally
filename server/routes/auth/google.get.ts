@@ -1,5 +1,4 @@
-import { sendRedirect } from "nuxt/server";
-import { useRuntimeConfig } from "nitro/runtime-config";
+import { sendRedirect, useRuntimeConfig } from "nuxt/server";
 import { fromLegacy } from "../../utils/compat";
 
 // Google login via nuxt-auth-utils. Only the listed family accounts get a session.

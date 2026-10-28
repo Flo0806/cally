@@ -1,4 +1,4 @@
-import { version } from "./package.json";
+import pkg from "./package.json" with { type: "json" };
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -30,9 +30,7 @@ export default defineNuxtConfig({
       // "1" skips the login, local development only
       authDisabled: "",
       // From package.json, bumped by scripts/release.sh
-      version,
-      // "1" registers the service worker in dev too, to test it in the browser devtools
-      sw: "",
+      version: pkg.version,
     },
     weather: {
       latitude: "",

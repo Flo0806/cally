@@ -1,5 +1,4 @@
-import { defineEventHandler } from "nuxt/server";
-import { useRuntimeConfig } from "nitro/runtime-config";
+import { defineEventHandler, useRuntimeConfig } from "nuxt/server";
 import { subscribe } from "../live/bus";
 
 // Server sent events: "something changed, reload". Keepalive comments every 25 seconds keep

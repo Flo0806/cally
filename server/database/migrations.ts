@@ -109,4 +109,30 @@ export const migrations: Migration[] = [
       )`,
     ],
   },
+  {
+    version: 6,
+    name: "agent-keys",
+    sql: [
+      // Only the SHA-256 of a key is stored, the key itself is shown once. Revoked, never deleted.
+      `CREATE TABLE agent_keys (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        prefix TEXT NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL,
+        last_used_at TEXT,
+        revoked_at TEXT
+      )`,
+    ],
+  },
+  {
+    version: 7,
+    name: "event-origin",
+    sql: [
+      // Set once on insert by an agent, edits in the app keep them. Keys are never deleted.
+      `ALTER TABLE events ADD COLUMN agent_key_id TEXT REFERENCES agent_keys (id)`,
+      `ALTER TABLE events ADD COLUMN source_ref TEXT`,
+      `CREATE INDEX events_source_ref ON events (source_ref)`,
+    ],
+  },
 ];

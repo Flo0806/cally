@@ -7,6 +7,7 @@ import {
   Menu,
   Newspaper,
   Plus,
+  Settings,
   Tags,
   Users,
 } from "@lucide/vue";
@@ -80,6 +81,14 @@ const categoriesOpen = ref(false);
       >
         <Users :size="22" />
       </button>
+      <NuxtLink
+        to="/settings"
+        class="btn btn-icon wide-only"
+        aria-label="Einstellungen"
+        title="Einstellungen"
+      >
+        <Settings :size="22" />
+      </NuxtLink>
       <button
         type="button"
         class="btn btn-icon wide-only todos"
@@ -94,7 +103,7 @@ const categoriesOpen = ref(false);
       </button>
       <button
         type="button"
-        class="btn btn-primary btn-icon"
+        class="btn btn-primary btn-icon add"
         aria-label="Neuer Termin"
         title="Neuer Termin"
         @click="editor.openNew(today().toString())"
@@ -132,6 +141,7 @@ const categoriesOpen = ref(false);
       @todos="todosOpen = true"
       @members="membersOpen = true"
       @categories="categoriesOpen = true"
+      @settings="navigateTo('/settings')"
       @logout="logout"
     />
 
@@ -235,7 +245,7 @@ const categoriesOpen = ref(false);
   }
 }
 
-/* Phone: icons only, the brand shrinks to its initial */
+/* Phone: icons only, no brand, and "new event" floats where the thumb is */
 @media (max-width: 639px) {
   .header {
     height: 64px;
@@ -243,14 +253,19 @@ const categoriesOpen = ref(false);
     padding: 0 var(--space-3);
   }
 
-  .brand {
-    width: 1ch;
-    overflow: hidden;
-    white-space: nowrap;
+  .brand-block {
+    display: none;
   }
 
-  .version {
-    display: none;
+  .add {
+    position: fixed;
+    right: var(--space-4);
+    bottom: calc(var(--space-4) + env(safe-area-inset-bottom));
+    z-index: 10;
+    width: 60px;
+    height: 60px;
+    border-radius: 999px;
+    box-shadow: var(--shadow-md);
   }
 
   .nav-text {

@@ -1,4 +1,4 @@
-import { useRuntimeConfig } from "nitro/runtime-config";
+import { useRuntimeConfig } from "nuxt/server";
 
 // Home is where the weather is configured for
 export function homeCoords(): { lat: number; lon: number } | null {

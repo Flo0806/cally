@@ -145,3 +145,14 @@ export const heartInput = v.object({
 });
 
 export type HeartInput = v.InferOutput<typeof heartInput>;
+
+export const agentKeyInput = v.object({
+  name: v.pipe(
+    v.string("Name fehlt"),
+    v.trim(),
+    v.minLength(1, "Name darf nicht leer sein"),
+    v.maxLength(60, "Name ist zu lang (max. 60 Zeichen)"),
+  ),
+});
+
+export type AgentKeyInput = v.InferOutput<typeof agentKeyInput>;

@@ -29,6 +29,9 @@ export interface CalendarEvent {
   locationLat: number | null;
   locationLon: number | null;
   travelMinutes: number | null;
+  // Which agent key created it and from what (e.g. a mail's Message-ID), null when made in the app
+  agentKeyId: string | null;
+  sourceRef: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -150,4 +153,14 @@ export interface WeatherDay {
 export interface Weather {
   current: { temp: number; code: number; isDay: boolean };
   days: WeatherDay[];
+}
+
+// The key itself and its hash never leave the server, `prefix` tells keys apart in the list
+export interface AgentKey {
+  id: string;
+  name: string;
+  prefix: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
 }

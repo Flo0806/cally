@@ -24,6 +24,8 @@ function toEvent(row: Row, memberIds: string[]): CalendarEvent {
     locationLat: row.location_lat === null ? null : Number(row.location_lat),
     locationLon: row.location_lon === null ? null : Number(row.location_lon),
     travelMinutes: row.travel_minutes === null ? null : Number(row.travel_minutes),
+    agentKeyId: row.agent_key_id === null ? null : String(row.agent_key_id),
+    sourceRef: row.source_ref === null ? null : String(row.source_ref),
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
   };
@@ -98,11 +100,19 @@ async function travelMinutesFor(
   }
 }
 
+export interface EventOrigin {
+  agentKeyId: string | null;
+  sourceRef: string | null;
+}
+
+const FROM_APP: EventOrigin = { agentKeyId: null, sourceRef: null };
+
 async function writeEvent(
   id: string,
   input: EventInput,
   createdAt: string,
   previous: CalendarEvent | null,
+  origin: EventOrigin = FROM_APP,
 ): Promise<CalendarEvent> {
   const travelMinutes = await travelMinutesFor(input, previous);
   const db = await useDb();
@@ -112,8 +122,9 @@ async function writeEvent(
     await db
       .prepare(
         `INSERT INTO events (id, title, notes, all_day, start, end, rrule, exdates, category_id,
-           location, location_lat, location_lon, travel_minutes, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           location, location_lat, location_lon, travel_minutes, agent_key_id, source_ref,
+           created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (id) DO UPDATE SET
            title = excluded.title, notes = excluded.notes, all_day = excluded.all_day,
            start = excluded.start, end = excluded.end, rrule = excluded.rrule,
@@ -136,6 +147,8 @@ async function writeEvent(
         input.locationLat,
         input.locationLon,
         travelMinutes,
+        origin.agentKeyId,
+        origin.sourceRef,
         createdAt,
         updatedAt,
       );
@@ -159,8 +172,8 @@ async function writeEvent(
   return getEvent(id);
 }
 
-export function createEvent(input: EventInput): Promise<CalendarEvent> {
-  return writeEvent(crypto.randomUUID(), input, nowIso(), null);
+export function createEvent(input: EventInput, origin?: EventOrigin): Promise<CalendarEvent> {
+  return writeEvent(crypto.randomUUID(), input, nowIso(), null, origin);
 }
 
 export async function updateEvent(id: string, input: EventInput): Promise<CalendarEvent> {
