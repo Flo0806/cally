@@ -31,8 +31,6 @@ export default defineNuxtConfig({
       authDisabled: "",
       // From package.json, bumped by scripts/release.sh
       version: pkg.version,
-      // "1" registers the service worker in dev too, to test it in the browser devtools
-      sw: "",
     },
     weather: {
       latitude: "",

@@ -1,8 +1,13 @@
-// Registers the service worker in production. Dev stays plain so nothing is cached while
-// coding, unless NUXT_PUBLIC_SW=1 asks for it to test the worker.
+// Production only. In dev the chunk names carry no hash and the version never changes, so the
+// worker would serve stale code forever; one left over from earlier is removed.
 export default defineNuxtPlugin(() => {
   if (!("serviceWorker" in navigator)) return;
-  if (import.meta.dev && useRuntimeConfig().public.sw !== "1") return;
+  if (import.meta.dev) {
+    void navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => Promise.all(registrations.map((r) => r.unregister())));
+    return;
+  }
   navigator.serviceWorker.register("/sw.js").catch((error) => {
     console.warn("[sw] registration failed", error);
   });
