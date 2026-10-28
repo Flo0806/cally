@@ -20,8 +20,8 @@ Every request sends the key as \`Authorization: Bearer ${AGENT_KEY_PREFIX}...\`.
 
 ## Start here
 
-1. \`GET /api/agent/members\` - the family members with their ids. Take ids from here, never
-   guess one.
+1. \`GET /api/agent/members\` and \`GET /api/agent/categories\` - the family members and the
+   categories with their ids. Take ids from here, never guess one.
 2. \`GET /api/agent/events?from=...&to=...\` - what is in the calendar. Look before you answer a
    question about the user's time, and search before you create, so you do not add a duplicate.
    For an event from a mail, search with \`sourceRef\` set to its Message-ID first.
@@ -32,6 +32,7 @@ Every request sends the key as \`Authorization: Bearer ${AGENT_KEY_PREFIX}...\`.
 | --- | --- |
 | \`GET /api/agent\` | this manual |
 | \`GET /api/agent/members\` | family members as \`[{ id, name }]\` |
+| \`GET /api/agent/categories\` | categories as \`[{ id, name }]\` |
 | \`GET /api/agent/events?from=&to=&q=&memberIds=&sourceRef=\` | events in a date range, optionally filtered |
 | \`GET /api/agent/events/{eventId}\` | one event |
 | \`POST /api/agent/events\` | create an event |
@@ -51,7 +52,7 @@ The answer is \`{ from, to, total, truncated, occurrences }\`, sorted by start. 
 appears once per date it falls on, with the same \`eventId\`. Each occurrence is an event:
 
 - \`eventId\`, \`title\`, \`allDay\`, \`start\`, \`end\`, \`recurring\`, \`location\`, \`notes\`
-- \`members\` as \`[{ id, name }]\`
+- \`members\` as \`[{ id, name }]\`, \`category\` as \`{ id, name }\` or null
 - \`sourceRef\` - what it was created from, null when it was made in the app
 - \`createdByYou\` - true when this key created it; only then can you change it
 - \`deletableUntil\` - until when you can delete it, null when you cannot
@@ -70,12 +71,18 @@ is true, search a shorter range.
 - \`end\` - optional, same format, not before \`start\`, inclusive for all-day events. Without it
   an all-day event lasts that one day and a timed event one hour.
 - \`memberIds\` - required, at least one id from \`/api/agent/members\`: who the event is for.
+- \`categoryId\` - optional, an id from \`/api/agent/categories\`, or null for none.
 - \`notes\` - optional, plain text, at most 2000 characters.
 - \`sourceRef\` - optional, at most 300 characters: where the event comes from, e.g. the
   Message-ID of the mail that announced it. Set it whenever there is one.
 
-Location, repetition and category cannot be set here. If the user asked for one, create the
-event without it and tell them to add it in the app.
+Location and repetition cannot be set here. If the user asked for one, create the event without
+it and tell them to add it in the app.
+
+**Categories:** pick an existing one when it clearly fits, e.g. a business appointment into the
+category for the company. If none fits, set none. You cannot create categories, and the family
+keeps them few on purpose; if the same kind of event keeps coming without a fitting category,
+suggest one to the user once.
 
 The answer (201) is \`{ event, tellUser }\`: the event as stored, and one sentence saying what
 you did. Pass \`tellUser\` on to the user.
@@ -96,8 +103,8 @@ what should change instead (\`not_own_event\`).
 
 \`PATCH /api/agent/events/{eventId}\` takes the fields of a new event except \`sourceRef\`, all
 optional; send only what changes. A new \`start\` without \`end\` moves the end along and keeps
-the length. Switching \`allDay\` needs a \`start\` in the other format. Location, category and
-repetition the family added in the app stay. The answer is \`{ event, tellUser }\`.
+the length. Switching \`allDay\` needs a \`start\` in the other format. \`categoryId: null\`
+removes the category. Location and repetition the family added in the app stay. The answer is \`{ event, tellUser }\`.
 
 \`DELETE /api/agent/events/{eventId}\` is for your own mistakes, within ${DELETE_WINDOW_MINUTES} minutes of
 creating the event (\`delete_window_closed\`). After that the family may already rely on it: tell
@@ -129,6 +136,7 @@ Every error has this shape:
 | \`missing_key\`, \`invalid_key\`, \`key_revoked\` | 401 | ask the user for a valid key |
 | \`validation_failed\` | 400 | fix the fields in \`issues\` |
 | \`unknown_member\` | 400 | a member id is unknown, take ids from \`/api/agent/members\` |
+| \`unknown_category\` | 400 | a category id is unknown, take ids from \`/api/agent/categories\` |
 | \`not_own_event\` | 403 | not created with your key, tell the user |
 | \`not_found\` | 404 | no such action or event |
 | \`delete_window_closed\` | 409 | too late to delete, tell the user |

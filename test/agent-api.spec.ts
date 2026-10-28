@@ -48,6 +48,7 @@ beforeAll(async () => {
 afterAll(() => {
   for (const id of createdEvents) db.prepare("DELETE FROM events WHERE id = ?").run(id);
   db.prepare("DELETE FROM agent_keys WHERE name LIKE ?").run(`${TAG}%`);
+  db.prepare("DELETE FROM categories WHERE name LIKE ?").run(`${TAG}%`);
   db.close();
 });
 
@@ -400,5 +401,61 @@ describe("changing and deleting events", () => {
     const late = await agent(key, "DELETE", `/api/agent/events/${old}`);
     expect(late.status).toBe(409);
     expect((await errorOf(late)).code).toBe("delete_window_closed");
+  });
+});
+
+describe("categories", () => {
+  const categoryId = randomUUID();
+
+  beforeAll(() => {
+    db.prepare("INSERT INTO categories (id, name, color, position) VALUES (?, ?, 'blue', 999)").run(
+      categoryId,
+      `${TAG} Firma`,
+    );
+  });
+
+  it("lists categories with id and name only", async () => {
+    const categories = (await (await agent(key, "GET", "/api/agent/categories")).json()) as Record<
+      string,
+      string
+    >[];
+    expect(categories).toContainEqual({ id: categoryId, name: `${TAG} Firma` });
+    for (const category of categories) expect(Object.keys(category).sort()).toEqual(["id", "name"]);
+  });
+
+  it("assigns, keeps and removes a category", async () => {
+    const response = await agent(key, "POST", "/api/agent/events", {
+      title: `${TAG} Kundentermin`,
+      allDay: false,
+      start: "2026-11-19T10:00",
+      memberIds: [memberId],
+      categoryId,
+    });
+    const { event } = (await response.json()) as { event: { eventId: string; category: unknown } };
+    createdEvents.push(event.eventId);
+    expect(event.category).toEqual({ id: categoryId, name: `${TAG} Firma` });
+
+    const path = `/api/agent/events/${event.eventId}`;
+    const renamed = (await (await agent(key, "PATCH", path, { title: `${TAG} Kunde` })).json()) as {
+      event: { category: { id: string } | null };
+    };
+    expect(renamed.event.category?.id).toBe(categoryId);
+
+    const cleared = (await (await agent(key, "PATCH", path, { categoryId: null })).json()) as {
+      event: { category: unknown };
+    };
+    expect(cleared.event.category).toBeNull();
+  });
+
+  it("refuses an unknown category", async () => {
+    const response = await agent(key, "POST", "/api/agent/events", {
+      title: `${TAG} x`,
+      allDay: true,
+      start: "2026-11-19",
+      memberIds: [memberId],
+      categoryId: "nope",
+    });
+    expect(response.status).toBe(400);
+    expect((await errorOf(response)).code).toBe("unknown_category");
   });
 });

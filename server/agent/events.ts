@@ -78,6 +78,7 @@ export interface AgentEvent {
   end: string;
   recurring: boolean;
   members: { id: string; name: string }[];
+  category: { id: string; name: string } | null;
   location: string;
   notes: string;
   sourceRef: string | null;
@@ -95,11 +96,7 @@ function deletableUntil(event: CalendarEvent, agent: AgentContext): string | nul
 }
 
 // The one shape an agent sees an event in, from search, lookup and create alike
-function toAgentEvent(
-  event: CalendarEvent,
-  names: Map<string, string>,
-  agent: AgentContext,
-): AgentEvent {
+function toAgentEvent(event: CalendarEvent, names: Names, agent: AgentContext): AgentEvent {
   return {
     eventId: event.id,
     title: event.title,
@@ -107,7 +104,10 @@ function toAgentEvent(
     start: event.start,
     end: event.end,
     recurring: event.rrule !== null,
-    members: event.memberIds.map((id) => ({ id, name: names.get(id) ?? "" })),
+    members: event.memberIds.map((id) => ({ id, name: names.members.get(id) ?? "" })),
+    category: event.categoryId
+      ? { id: event.categoryId, name: names.categories.get(event.categoryId) ?? "" }
+      : null,
     location: event.location,
     notes: event.notes,
     sourceRef: event.sourceRef,
@@ -116,16 +116,36 @@ function toAgentEvent(
   };
 }
 
+interface Names {
+  members: Map<string, string>;
+  categories: Map<string, string>;
+}
+
 // Names by id, and the check that every id the agent sent exists
-async function memberNames(ids: string[] = []): Promise<Map<string, string>> {
-  const members = await listLookups("members");
-  const names = new Map(members.map((m) => [m.id, m.name]));
-  const unknown = ids.filter((id) => !names.has(id));
+async function lookupNames(
+  sent: { memberIds?: string[]; categoryId?: string | null } = {},
+): Promise<Names> {
+  const [members, categories] = await Promise.all([
+    listLookups("members"),
+    listLookups("categories"),
+  ]);
+  const names: Names = {
+    members: new Map(members.map((m) => [m.id, m.name])),
+    categories: new Map(categories.map((c) => [c.id, c.name])),
+  };
+  const unknown = (sent.memberIds ?? []).filter((id) => !names.members.has(id));
   if (unknown.length) {
     throw new AgentError(400, {
       code: "unknown_member",
       message: `Unknown member id: ${unknown.join(", ")}.`,
       hint: "Take member ids from GET /api/agent/members.",
+    });
+  }
+  if (sent.categoryId && !names.categories.has(sent.categoryId)) {
+    throw new AgentError(400, {
+      code: "unknown_category",
+      message: `Unknown category id: ${sent.categoryId}.`,
+      hint: "Take category ids from GET /api/agent/categories. You cannot create categories.",
     });
   }
   return names;
@@ -135,7 +155,10 @@ export async function searchOccurrences(
   { from, to, q, memberIds, sourceRef }: EventSearchQuery,
   agent: AgentContext,
 ) {
-  const [events, names] = await Promise.all([listEventsInRange(from, to), memberNames(memberIds)]);
+  const [events, names] = await Promise.all([
+    listEventsInRange(from, to),
+    lookupNames({ memberIds }),
+  ]);
 
   const needle = q?.toLocaleLowerCase("de");
   const matching = events.filter(
@@ -186,8 +209,10 @@ const notes = v.pipe(
   v.maxLength(2000, "At most 2000 characters."),
 );
 
-// The agent's own body, mapped onto the app's event in `createAgentEvent`. Location, repeat and
-// category are left out: a location needs coordinates the agent cannot resolve.
+const categoryId = v.nullable(v.string("Must be a category id or null."));
+
+// The agent's own body, mapped onto the app's event in `createAgentEvent`. Location and repeat
+// are left out: a location needs coordinates the agent cannot resolve.
 export const eventCreateBody = v.pipe(
   v.strictObject({
     title,
@@ -196,6 +221,7 @@ export const eventCreateBody = v.pipe(
     end: v.optional(v.string("Must be a string.")),
     memberIds,
     notes: v.optional(notes, ""),
+    categoryId: v.optional(categoryId, null),
     sourceRef: v.optional(sourceRef),
   }),
   v.forward(
@@ -248,7 +274,7 @@ async function findOwnEvent(id: string, agent: AgentContext): Promise<CalendarEv
 }
 
 export async function getAgentEvent(id: string, agent: AgentContext): Promise<AgentEvent> {
-  const [event, names] = await Promise.all([findEvent(id), memberNames()]);
+  const [event, names] = await Promise.all([findEvent(id), lookupNames()]);
   return toAgentEvent(event, names, agent);
 }
 
@@ -269,7 +295,7 @@ function shiftedEnd(event: CalendarEvent, start: string): string {
 }
 
 export async function createAgentEvent(body: EventCreateBody, agent: AgentContext) {
-  const names = await memberNames(body.memberIds);
+  const names = await lookupNames(body);
   const end = body.end ?? defaultEnd(body.allDay, body.start);
 
   const created = await createEvent(
@@ -281,7 +307,7 @@ export async function createAgentEvent(body: EventCreateBody, agent: AgentContex
       end,
       rrule: null,
       exdates: [],
-      categoryId: null,
+      categoryId: body.categoryId,
       memberIds: body.memberIds,
       location: "",
       locationLat: null,
@@ -290,7 +316,7 @@ export async function createAgentEvent(body: EventCreateBody, agent: AgentContex
     { agentKeyId: agent.id, sourceRef: body.sourceRef ?? null },
   );
 
-  const who = created.memberIds.map((id) => names.get(id)).join(", ");
+  const who = created.memberIds.map((id) => names.members.get(id)).join(", ");
   const when =
     created.start === created.end
       ? `on ${created.start}`
@@ -313,6 +339,7 @@ export const eventPatchBody = v.pipe(
     end: v.optional(v.string("Must be a string.")),
     memberIds: v.optional(memberIds),
     notes: v.optional(notes),
+    categoryId: v.optional(categoryId),
   }),
   v.check((body) => Object.keys(body).length > 0, "Send at least one field to change."),
 );
@@ -332,7 +359,7 @@ function invalid(path: string, message: string): AgentError {
 
 export async function updateAgentEvent(id: string, body: EventPatchBody, agent: AgentContext) {
   const current = await findOwnEvent(id, agent);
-  const names = await memberNames(body.memberIds);
+  const names = await lookupNames(body);
 
   // The result is judged as a whole: a new allDay needs a start in its format
   const allDay = body.allDay ?? current.allDay;
@@ -348,7 +375,7 @@ export async function updateAgentEvent(id: string, body: EventPatchBody, agent: 
   if (!validStart(allDay, end)) throw invalid("end", FORMAT_HINT);
   if (end < start) throw invalid("end", "Must not be before start.");
 
-  // Location, category and repetition stay as the family set them in the app
+  // Location and repetition stay as the family set them in the app
   const updated = await updateEvent(id, {
     title: body.title ?? current.title,
     notes: body.notes ?? current.notes,
@@ -357,14 +384,14 @@ export async function updateAgentEvent(id: string, body: EventPatchBody, agent: 
     end,
     rrule: current.rrule,
     exdates: current.exdates,
-    categoryId: current.categoryId,
+    categoryId: body.categoryId === undefined ? current.categoryId : body.categoryId,
     memberIds: body.memberIds ?? current.memberIds,
     location: current.location,
     locationLat: current.locationLat,
     locationLon: current.locationLon,
   });
 
-  const fields = ["title", "allDay", "start", "end", "memberIds", "notes"] as const;
+  const fields = ["title", "allDay", "start", "end", "memberIds", "categoryId", "notes"] as const;
   const changed = fields.filter(
     (field) => JSON.stringify(current[field]) !== JSON.stringify(updated[field]),
   );

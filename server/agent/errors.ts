@@ -7,6 +7,7 @@ export type AgentErrorCode =
   | "not_found"
   | "validation_failed"
   | "unknown_member"
+  | "unknown_category"
   | "not_own_event"
   | "delete_window_closed"
   | "internal_error";
