@@ -1,6 +1,4 @@
-import { createError, defineEventHandler } from "nuxt/server";
-// TODO: switch back to `nuxt/server` once nuxt/nuxt#36275 follow-up (noExternal fix) ships
-import { useRuntimeConfig } from "nitro/runtime-config";
+import { createError, defineEventHandler, useRuntimeConfig } from "nuxt/server";
 import { $fetch } from "ofetch";
 import type { Weather } from "#shared/types";
 

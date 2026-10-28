@@ -1,4 +1,4 @@
-import { createError, defineEventHandler, setResponseHeader } from "nuxt/server";
+import { createError, defineEventHandler } from "nuxt/server";
 import { requireParam } from "../../utils/validate";
 
 // Favicons proxied and cached here, so the tablet never talks to a third party for an icon
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
   }
   if (!icon.body) throw createError({ statusCode: 404, message: "Kein Icon" });
 
-  setResponseHeader(event, "content-type", icon.type);
-  setResponseHeader(event, "cache-control", "public, max-age=86400");
+  event.res.headers.set("content-type", icon.type);
+  event.res.headers.set("cache-control", "public, max-age=86400");
   return icon.body;
 });

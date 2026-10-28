@@ -1,5 +1,5 @@
 import { defineTask } from "nitro/task";
-import { useRuntimeConfig } from "nitro/runtime-config";
+import { useRuntimeConfig } from "nuxt/server";
 import { pushDueReminders } from "../../today/reminders";
 
 // Every 5 minutes (nuxt.config). Off unless NUXT_REMINDERS=1, so a dev server never pages anyone.

@@ -1,5 +1,4 @@
-import { defineEventHandler } from "nuxt/server";
-import { useRuntimeConfig } from "nitro/runtime-config";
+import { defineEventHandler, useRuntimeConfig } from "nuxt/server";
 import { toLegacy } from "../utils/compat";
 
 // Every API call needs a session. The module's own session endpoint and logout stay open.

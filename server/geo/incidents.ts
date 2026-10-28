@@ -1,4 +1,4 @@
-import { useRuntimeConfig } from "nitro/runtime-config";
+import { useRuntimeConfig } from "nuxt/server";
 import type { RouteIncident } from "#shared/types";
 import type { LatLon } from "./tomtom";
 

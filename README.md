@@ -39,8 +39,7 @@ No Pinia, no ORM, no component library. State lives in composables over `useStat
 
 Things that came up while building on the nightly, in case they save someone an afternoon:
 
-- Server auto-imports are gone. `defineEventHandler`, `getQuery`, `readBody`, `createError` come from `nuxt/server`, `useDatabase` from `nitro/database`, `$fetch` from `ofetch`
-- `useRuntimeConfig` from `nuxt/server` returned a stub in dev at the time of writing (the nitro dev environment externalized `nuxt/server`). The fix is upstream, until it ships the app imports it from `nitro/runtime-config`
+- Server auto-imports are gone. `defineEventHandler`, `getQuery`, `readBody`, `createError`, `useRuntimeConfig` come from `nuxt/server`, `useDatabase` from `nitro/database`, `$fetch` from `ofetch`
 - Nuxt 5 has sessions built in (`useSession`), but `nuxt-auth-utils` still targets h3 v1. It runs fine through the compat layer, only the event types disagree, see `server/utils/compat.ts`
 - `db0`'s `sql` tagged template returns rows only for `SELECT`. `PRAGMA` and friends go through `prepare().get()`
 - Nitro tasks work in dev and in the node server preset, the news feeds are pulled every 30 minutes by a scheduled task
