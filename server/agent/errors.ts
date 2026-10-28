@@ -5,12 +5,15 @@ export type AgentErrorCode =
   | "rate_limited"
   | "payload_too_large"
   | "not_found"
+  | "validation_failed"
+  | "unknown_member"
   | "internal_error";
 
 export interface AgentErrorBody {
   code: AgentErrorCode;
   message: string;
   hint?: string;
+  issues?: { path: string; message: string }[];
 }
 
 // One shape for every refusal, written for a model: `code` to branch on, `hint` for the next step
