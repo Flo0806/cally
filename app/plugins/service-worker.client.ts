@@ -5,7 +5,12 @@ export default defineNuxtPlugin(() => {
   if (import.meta.dev) {
     void navigator.serviceWorker
       .getRegistrations()
-      .then((registrations) => Promise.all(registrations.map((r) => r.unregister())));
+      .then((registrations) => Promise.all(registrations.map((r) => r.unregister())))
+      .then((removed) => {
+        // This page itself still came through the old worker, the reload loads it fresh
+        if (removed.some(Boolean) && navigator.serviceWorker.controller) location.reload();
+      })
+      .catch((error) => console.warn("[sw] unregister failed", error));
     return;
   }
   navigator.serviceWorker.register("/sw.js").catch((error) => {

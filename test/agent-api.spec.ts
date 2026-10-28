@@ -279,6 +279,21 @@ describe("creating events", () => {
     expect(found.total).toBe(1);
     expect(found.occurrences[0]?.eventId).toBe(event.eventId);
   });
+
+  it("keeps a member sent twice once", async () => {
+    const response = await create({
+      title: `${TAG} twice`,
+      allDay: true,
+      start: "2026-11-13",
+      memberIds: [memberId, memberId],
+    });
+    expect(response.status).toBe(201);
+    const { event } = (await response.json()) as {
+      event: { eventId: string; members: unknown[] };
+    };
+    createdEvents.push(event.eventId);
+    expect(event.members).toHaveLength(1);
+  });
 });
 
 describe("where an event comes from", () => {
@@ -459,15 +474,17 @@ describe("categories", () => {
     expect(cleared.event.category).toBeNull();
   });
 
-  it("refuses an unknown category", async () => {
-    const response = await agent(key, "POST", "/api/agent/events", {
-      title: `${TAG} x`,
-      allDay: true,
-      start: "2026-11-19",
-      memberIds: [memberId],
-      categoryId: "nope",
-    });
-    expect(response.status).toBe(400);
-    expect((await errorOf(response)).code).toBe("unknown_category");
+  it("refuses an unknown and an empty category", async () => {
+    for (const id of ["nope", ""]) {
+      const response = await agent(key, "POST", "/api/agent/events", {
+        title: `${TAG} x`,
+        allDay: true,
+        start: "2026-11-19",
+        memberIds: [memberId],
+        categoryId: id,
+      });
+      expect(response.status, id).toBe(400);
+      expect((await errorOf(response)).code, id).toBe("unknown_category");
+    }
   });
 });

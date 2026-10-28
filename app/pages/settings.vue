@@ -18,6 +18,7 @@ const busy = ref(false);
 const newKey = ref("");
 const showKey = ref(false);
 const copied = ref(false);
+const copyFailed = ref(false);
 
 async function submit() {
   error.value = "";
@@ -31,6 +32,7 @@ async function submit() {
     newKey.value = await create(parsed.output.name);
     name.value = "";
     copied.value = false;
+    copyFailed.value = false;
     showKey.value = true;
   } catch (e) {
     error.value = (e as ApiError).message;
@@ -44,9 +46,15 @@ watch(showKey, (open) => {
   if (!open) newKey.value = "";
 });
 
+// Clipboard needs a secure context and permission, the key stays selectable as a fallback
 async function copy() {
-  await navigator.clipboard.writeText(newKey.value);
-  copied.value = true;
+  copyFailed.value = false;
+  try {
+    await navigator.clipboard.writeText(newKey.value);
+    copied.value = true;
+  } catch {
+    copyFailed.value = true;
+  }
 }
 
 // Second tap confirms, like deleting a member
@@ -119,6 +127,9 @@ function usage(key: AgentKey): string {
       description="Nur jetzt sichtbar. Kopieren und im Agenten hinterlegen."
     >
       <code class="key">{{ newKey }}</code>
+      <p v-if="copyFailed" class="error">
+        Kopieren hat nicht geklappt. Key antippen, er wird ganz markiert, dann selbst kopieren.
+      </p>
       <template #actions>
         <button class="btn btn-primary" type="button" @click="copy">
           <component :is="copied ? Check : Copy" :size="20" />

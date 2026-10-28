@@ -157,7 +157,7 @@ async function lookupNames(
       hint: "Take member ids from GET /api/agent/members.",
     });
   }
-  if (sent.categoryId && !names.categories.has(sent.categoryId)) {
+  if (sent.categoryId != null && !names.categories.has(sent.categoryId)) {
     throw new AgentError(400, {
       code: "unknown_category",
       message: `Unknown category id: ${sent.categoryId}.`,
@@ -218,6 +218,8 @@ const title = v.pipe(
 const memberIds = v.pipe(
   v.array(v.string(), "Must be an array of member ids."),
   v.minLength(1, "At least one member id."),
+  // A member sent twice would break the insert into event_members
+  v.transform((ids) => [...new Set(ids)]),
 );
 const notes = v.pipe(
   v.string("Must be a string."),
